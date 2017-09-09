@@ -48,7 +48,7 @@ class MixTool:
             self.Diff()
 
         def _Replace():
-            self.Backup()
+            # self.Backup()
             self.ReplaceAll()
          
         operator = {

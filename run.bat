@@ -4,8 +4,9 @@ set PushFolder="C:/Users/xianbin/AppData/LocalLow/Magic Game/Novenia Fantasy/Lua
 set GameFolder=E:\Project\mywork1\client
 set Root=%cd%
 set ScriptFolder=%Root%\script
-set OutputFolder=%Root%\output\unsigned
-set SignedFolder=%Root%\output\signed
+set OutputFolder=%Root%\output
+set UnsignedFolder=%OutputFolder%\unsigned
+set SignedFolder=%OutputFolder%\signed
 set BinFolder=%Root%\bin
 set Cs2luaFolder=%bin%\cs2lua
 set CsprojFolder=%GameFolder%\Assembly-CSharp.csproj
@@ -55,38 +56,52 @@ del %ScriptFolder%\cs2lua*
 :_XLUA
 if exist %OutputFolder% (
 	echo "ok."
-) else (
-	md %OutputFolder%
+	rd /s /q %OutputFolder%
 )
+md %OutputFolder%
 
-del %OutputFolder%\*.lua
-%BinFolder%/cs2lua_format_xlua.py %ScriptFolder% %OutputFolder%
+%BinFolder%/cs2lua_format_xlua.py %ScriptFolder% %UnsignedFolder%
+echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
 goto _End
 
 :_SIGN
-if exist %SignedFolder% (
-	echo "ok."
-) else (
-	md %SignedFolder%
+if exist %OutputFolder% (
+	if exist %SignedFolder% (
+		echo "ok."
+	) else (
+		md %SignedFolder%
+	)
+	python %BinFolder%/mix_and_sign.py %PushFolder% %UnsignedFolder% %SignedFolder%
 )
-python %BinFolder%/mix_and_sign.py %PushFolder% %OutputFolder% %SignedFolder%
 goto _End
 
 :_PUSH
-rd /s /q %PushFolder%\
-echo A|xcopy  /E %BinFolder%\core\* %PushFolder%\core\
-echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
+if exist %OutputFolder% (
+	rd /s /q %PushFolder%\
+	if exist %SignedFolder% (
+		echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
+	) else (
+		echo A|xcopy  /E %UnsignedFolder%\* %PushFolder%\
+	)
+)
 goto _End
 
 :_ZIP
-if exist %TempFolder% (
+if exist %OutputFolder% (
+	if exist %TempFolder% (
+		rd /s /q %TempFolder%
+	)
+	md %TempFolder%
+
+	if exist %SignedFolder% (
+		echo A|xcopy  /E %SignedFolder%\* %TempFolder%\
+	) else (
+		echo A|xcopy  /E %UnsignedFolder%\* %TempFolder%\
+	)
+	7z a scripts.zip %TempFolder%\*
 	rd /s /q %TempFolder%
 )
-md %TempFolder%
-echo A|xcopy  /E %BinFolder%\core\* %TempFolder%\core\
-echo A|xcopy  /E %SignedFolder%\* %TempFolder%\
-7z a scripts.zip %TempFolder%\*
-rd /s /q %TempFolder%
+
 goto _End
 
 :_End

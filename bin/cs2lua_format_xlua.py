@@ -1132,6 +1132,8 @@ class FindType(object):
         with open(self.ScriptFolder + "\\" + filename, "r") as f:
             self.lines = f.readlines()
         lBlock = self.init_block()
+        if not os.path.exists(self.OutputFolder):
+            os.makedirs(self.OutputFolder)
         with open(self.OutputFolder + "\\" + filename, "w") as f_w:
             for block in lBlock:
                 for line in block:
