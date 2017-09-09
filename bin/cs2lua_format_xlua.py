@@ -4,11 +4,11 @@ import os,sys, re
 import shutil
 
 class FindType(object):
-    _ext = []
-    _filter = []
-    _path_filte = []
-    _src = ""
-    _out = ""
+    ext = []
+    Filter = []
+    pathFilter = []
+    ScriptFolder = ""
+    OutputFolder = ""
     lines = []
     limit = False
     luaModel = {}
@@ -30,21 +30,28 @@ class FindType(object):
     _targets = []
 
     lGetFunc = [
-        {"BaseChatItemCom" : ["SetContentBgSpriteWidth", "ClickLbl"]}
+        {"BaseChatItemCom" : 
+            [
+                "SetContentBgSpriteWidth", 
+                "ClickLbl"
+            ]
+        }
     ]
 
     def __init__(self, argv):
         if argv == None:
             self._root = os.getcwd()
         else:
-            self._src = argv[1]
-            self._out = argv[2]
-        print "self._src:" + self._src
-        print "self._out:" + self._out
+            self.ScriptFolder = argv[1]
+            self.OutputFolder = argv[2]
+        print "="*20
+        print "self.ScriptFolder:" + self.ScriptFolder
+        print "self.OutputFolder:" + self.OutputFolder
+        print "="*20
 
     def IsTargetExt(self, filename):
         flag = False
-        for target in self._ext:
+        for target in self.ext:
             if target in filename:
                 flag = True
                 break
@@ -59,7 +66,7 @@ class FindType(object):
 
     def IsPassFile(self, filename):
         flag = False
-        for filter in self._filter:
+        for filter in self.Filter:
             if filter in filename:
                 flag = True
                 break
@@ -67,16 +74,16 @@ class FindType(object):
 
     def IsPassPath(self, path):
         flag = False
-        for filt in self._path_filte:
-            if self._src + "/" + filt == path:
+        for filt in self.pathFilter:
+            if self.ScriptFolder + "/" + filt == path:
                 flag = True
                 break
         return flag
 
     def setFilter(self, target, filte, path_filte):
-        self._ext = target
-        self._filter = filte
-        self._path_filte = path_filte
+        self.ext = target
+        self.Filter = filte
+        self.pathFilter = path_filte
     
     def ReplaceEx(self, line, origin, dest, debug=False):
         neworigin = r"\b{0}\b".format(origin)
@@ -614,9 +621,10 @@ class FindType(object):
                     _func = largv[0]
                     _func = _func.strip().strip("(").strip(")")
                     _ori, _func2 = self.Match(_func, "function({0}){1}end", ["[A-Za-z0-9_\.\[\]]", "\w*.*"], "")
-                    _add = "{0} = {0}.current".format(_func2[0])
-                    _func = self.doMatch(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
-                    line = self.doMatch(line, _origin, ["{0}foreach({1}, {2})", chr(self.S)*_offset, _list, _func])
+                    if len(_func2) > 0:
+                        _add = "{0} = {0}.current".format(_func2[0])
+                        _func = self.doMatch(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
+                        line = self.doMatch(line, _origin, ["{0}foreach({1}, {2})", chr(self.S)*_offset, _list, _func])
             
             if "typeas" in line:
                 def __handler2(subline, debug=False):
@@ -939,7 +947,7 @@ class FindType(object):
         return lNewBlock
 
     def make_init_module(self, lModels):
-        path = self._out + "\init.lua"
+        path = self.OutputFolder + "\init.lua"
         lInput = [
             "util = require 'xlua.util'\n",
             "xutf8 = require 'xutf8'\n",
@@ -1109,7 +1117,7 @@ class FindType(object):
 
     def find(self, target=""):
         lModels = [] 
-        for parent, dirnames, filenames in os.walk(self._src):
+        for parent, dirnames, filenames in os.walk(self.ScriptFolder):
             for filename in filenames:
                 if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
                     fullname = os.path.join(parent, filename)
@@ -1121,10 +1129,10 @@ class FindType(object):
 
     def Read(self, parent, filename):
         print "-"*50, filename, "-"*50
-        with open(self._src + "/" + filename, "r") as f:
+        with open(self.ScriptFolder + "\\" + filename, "r") as f:
             self.lines = f.readlines()
         lBlock = self.init_block()
-        with open(self._out + "/" + filename, "w") as f_w:
+        with open(self.OutputFolder + "\\" + filename, "w") as f_w:
             for block in lBlock:
                 for line in block:
                     f_w.write(line)

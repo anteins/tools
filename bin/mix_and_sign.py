@@ -6,38 +6,45 @@ import json
 from random import Random
 
 class MixTool:
-    _toPath = r"C:\Users\xianbin\AppData\LocalLow\Magic Game\Novenia Fantasy\LuaTxt"
-    _lstop = ["GlobalConfig.lua"]
-    root_path = os.getcwd() + "\\"
-    signedpath = "signed"
-    signed_path = root_path + signedpath + "\\"
-    out_path = root_path + "output\\"
-    diff_path = root_path + "diff\\"
-    bin_path = root_path + "bin\\"
+    PassingScript = [
+        "GlobalConfig.lua"
+    ]
+    PushToFolder = ""
+    RootFolder = os.getcwd() + "\\"
+    OutputFolder = ""
+    SignedFolder = ""
+    DiffScriptFolder = RootFolder + "diff" + "\\"
+    BinFolder = RootFolder + "bin" + "\\"
     _origin = 0
-    _mix = 0
-    _platform = ""  #luac
-    _chars = 'MNPQRSTUVY'
+    mixcode = 0
+    platform = ""  #luac.exe
+    MixNameKeys = 'MNPQRSTUVY'
     _ld = {}
-    _namecache = {}
+    nameCache = {}
 
     def __init__(self):
         pass
 
     def Run(self, argv=None):
-        self.HandArgv(argv)    
-        print 'platform:{0}, mix:{1}'.format(self._platform, self._mix)
-        def _Mix():
+        self.HandleArgv(argv)  
+        print "="*20
+        print 'platform', self.platform
+        print 'mix',   self.mixcode
+        print "PushToFolder", self.PushToFolder
+        print "OutputFolder", self.OutputFolder
+        print "SignedFolder", self.SignedFolder
+        print "="*20
+        def MixScript():
             self.Backup()
             self.Mix()
-            self.CopyToPath()
+            # self.CopyToPath()
          
-        def _Sign():
+        def SignScript():
             self.Backup()
             self.Sign()
-            self.CopyToPath()
+            # self.CopyToPath()
          
-        def _Diff():
+        def DumpDiffVersion():
             self.Diff()
 
         def _Replace():
@@ -45,35 +52,43 @@ class MixTool:
             self.ReplaceAll()
          
         operator = {
-            '1':_Mix,
-            '2':_Sign,
-            '3':_Diff
+            '1':MixScript,
+            '2':SignScript,
+            '3':DumpDiffVersion
         }
 
-        def f(t):
-            operator.get(t)()
+        def f(oper):
+            operator.get(oper)()
 
-        if self._platform == "" and self._mix == 0:
-            _Mix()
+        if self.platform == "" and self.mixcode == 0:
+            #defalut 
+            MixScript()
             return
             
-        t = raw_input("1.Mix 2.Sign 3.Diff\n")
+        oper = raw_input("1.Mix 2.Sign 3.Diff\n")
         if not t in ["1", "2", "3"]:
             print 'input error.'
             return
-        f(t)
+        f(oper)
 
-    def HandArgv(self, argv):
+    def HandleArgv(self, argv):
         if argv:
             try:
                 print "argv:", argv
                 for i in range(1, len(argv), 2):
                     if argv[i] == "-p":
                         if argv[i+1] == "x64" or argv[i+1] == "x86":
-                            self._platform = argv[i+1]
+                            self.platform = argv[i+1]
                     elif argv[i] == "-m":
                         if argv[i+1] == "0" or argv[i+1] == "1":
-                            self._mix = int(argv[i+1])
+                            self.mixcode = int(argv[i+1])
+                    else:
+                        # run.bat argvs
+                        self.PushToFolder = argv[1]
+                        self.OutputFolder = argv[2]
+                        self.SignedFolder = argv[3]
+                        
+                        break
 
             except Exception, e: 
                 print '\nargs error:', e
@@ -87,19 +102,19 @@ class MixTool:
 
     def Api(self):
         if self._origin == 1:
-            lua = self.bin_path+self._platform+"\\origin\\lua"
-            luac = self.bin_path+self._platform+"\\origin\\luac"
+            lua = self.BinFolder+self.platform+"\\origin\\lua"
+            luac = self.BinFolder+self.platform+"\\origin\\luac"
         else:
-            lua = self.bin_path+self._platform+"\\lua"
-            luac = self.bin_path+self._platform+"\\luac"
+            lua = self.BinFolder+self.platform+"\\lua"
+            luac = self.BinFolder+self.platform+"\\luac"
         self.do_cmd(lua +" -v")
         self.do_cmd(luac +" -v")
         return lua, luac
 
     def lua_compile(self):
-        if self._platform != "":
+        if self.platform != "":
             lua, luac = self.Api()
-            for parent,dirnames,filenames in os.walk(self.signed_path):
+            for parent,dirnames,filenames in os.walk(self.SignedFolder):
                 for filename in filenames:
                     fullpath = os.path.join(parent, filename)
                     self.do_cmd(luac+" -o "+ fullpath + " " + fullpath, True)
@@ -117,7 +132,7 @@ class MixTool:
         for i in range(0, len(tmp)):
             tt = tmp[i]
             if 48 <= ord(tmp[i]) <= 57:
-                tt = self._chars[ord(tmp[i])-48]
+                tt = self.MixNameKeys[ord(tmp[i])-48]
             mstr1 = mstr1 + tt
         print tempfilename, mstr1
         return mstr1
@@ -176,9 +191,9 @@ class MixTool:
         self.do_cmd("rename " + filepath + "\\tmp.lua " + tempfilename)
 
     def MixFileName(self):
-        if self._mix == 1:
+        if self.mixcode == 1:
             _randomKey = {}
-            for parent,dirnames,filenames in os.walk(self.signed_path):
+            for parent,dirnames,filenames in os.walk(self.SignedFolder):
                 for filename in filenames:
                     if not ".lua.meta" in filename and ".lua" in filename:
                         fullpath = os.path.join(parent, filename)
@@ -187,12 +202,12 @@ class MixTool:
                         #_randomKey[module] = self.RandomStr()
                         _randomKey[module] = key
                         self._ld[module] = key
-                        self._namecache[key] = module
+                        self.nameCache[key] = module
                         if not filename in "init.lua":
                             self.do_cmd("rename " + fullpath + " " + key + ".lua")
 
-            # fw = open(self.signed_path+"tmp.lua", 'w')
-            # f = open(self.signed_path + "init.lua", 'r')
+            # fw = open(self.SignedFolder+"tmp.lua", 'w')
+            # f = open(self.SignedFolder + "init.lua", 'r')
             # for line in f:
             #     if "xlua.util" in line:
             #         fw.write(line)
@@ -204,14 +219,14 @@ class MixTool:
             #         fw.write(line)
             # f.close()
             # fw.close()
-            # self.do_cmd("del /f /s /q " + self.signed_path + "init.lua", True)
-            # self.do_cmd("rename " + self.signed_path + "tmp.lua " + "init.lua", True)
+            # self.do_cmd("del /f /s /q " + self.SignedFolder + "init.lua", True)
+            # self.do_cmd("rename " + self.SignedFolder + "tmp.lua " + "init.lua", True)
 
     ## 递归创建            
     def CreatePath(self, path):
         (filepath, tempfilename) = os.path.split(path)
-        lpath = filepath.replace(self.root_path, "").split('\\')
-        curpath = self.root_path
+        lpath = filepath.replace(self.RootFolder, "").split('\\')
+        curpath = self.RootFolder
         for p in lpath:
             curpath = curpath  + p + "\\"
             if os.path.exists(curpath):
@@ -219,24 +234,24 @@ class MixTool:
             os.makedirs(curpath)
 
     def CheckVersion(self, module, mstr, fullname):
-        if not os.path.isfile(self.bin_path + "version.json"):
+        if not os.path.isfile(self.BinFolder + "version.json"):
             return
-        ver = file(self.bin_path + "version.json")
+        ver = file(self.BinFolder + "version.json")
         dData = json.load(ver)
         if dData.has_key(module) == True:
             print "{0} {1} ===> {2}".format(module, mstr, dData[module])
             #u2s = dData[module].encode('utf-8')
             if cmp(dData[module], mstr) != 0:
                 print "diff!"
-                target = fullname.replace(self.signedpath, "diff")
+                target = fullname.replace("signed", "diff")
                 self.CreatePath(target)
                 shutil.copyfile(fullname, target)
         ver.close()
 
     def UpdateVersion(self):
-        f = open(self.bin_path+"md5.json", 'w')
+        f = open(self.BinFolder+"md5.json", 'w')
         f.write("{\n")
-        for parent,dirnames,filenames in os.walk(self.signed_path):
+        for parent,dirnames,filenames in os.walk(self.SignedFolder):
             for filename in filenames:
                 if not ".lua.meta" in filename and ".lua" in filename:
                     fullpath = os.path.join(parent, filename)
@@ -248,37 +263,36 @@ class MixTool:
         f.close()       
 
     def CopyToPath(self):
-        if os.path.exists(self._toPath):
-            shutil.rmtree(self._toPath)
-        
-        shutil.copytree(self.root_path + self.signedpath, self._toPath)
+        if os.path.exists(self.PushToFolder):
+            shutil.rmtree(self.PushToFolder)
+        shutil.copytree(self.SignedFolder, self.PushToFolder)
 
     def Backup(self):
-        if not os.path.exists(self.signed_path):
-            os.makedirs(self.signed_path)
-        if os.path.exists(self.out_path):
-            shutil.rmtree(self.signed_path)
-            shutil.copytree(self.out_path, self.signed_path)
+        if not os.path.exists(self.SignedFolder):
+            os.makedirs(self.SignedFolder)
+        if os.path.exists(self.OutputFolder):
+            shutil.rmtree(self.SignedFolder)
+            shutil.copytree(self.OutputFolder, self.SignedFolder)
 
     def Sign(self):
-        os.chdir(self.bin_path)
-        self.do_cmd("FilesSignature.exe {0} {1}".format(self.signed_path, self.signed_path), True)
-        os.chdir(self.root_path)
+        os.chdir(self.BinFolder)
+        self.do_cmd("FilesSignature.exe {0} {1}".format(self.SignedFolder, self.SignedFolder), True)
+        os.chdir(self.RootFolder)
 
     def Mix(self):
-        os.chdir(self.signed_path)
+        os.chdir(self.SignedFolder)
         self.MixFileName()
         self.ReplaceAll()
         self.lua_compile()
-        os.chdir(self.root_path)
+        os.chdir(self.RootFolder)
         self.Sign()
         self.UpdateVersion()
 
     def Diff(self):
-        if os.path.exists(self.diff_path):
-            shutil.rmtree(self.diff_path)
-        os.makedirs(self.diff_path)
-        for parent,dirnames,filenames in os.walk(self.signed_path):
+        if os.path.exists(self.DiffScriptFolder):
+            shutil.rmtree(self.DiffScriptFolder)
+        os.makedirs(self.DiffScriptFolder)
+        for parent,dirnames,filenames in os.walk(self.SignedFolder):
             for filename in filenames:
                 if not ".lua.meta" in filename and ".lua" in filename:
                     fullpath = os.path.join(parent, filename)
@@ -288,13 +302,13 @@ class MixTool:
 
     def isStop(self, filename):
         module = filename.replace(".lua", "")
-        b1 = not filename in self._lstop
-        if self._namecache.has_key(module):
-            b1 = not self._namecache[module]+".lua" in self._lstop
+        b1 = not filename in self.PassingScript
+        if self.nameCache.has_key(module):
+            b1 = not self.nameCache[module]+".lua" in self.PassingScript
         return b1
 
     def ReplaceAll(self):
-        for parent,dirnames,filenames in os.walk(self.signed_path):
+        for parent,dirnames,filenames in os.walk(self.SignedFolder):
             for filename in filenames:
                 if not ".lua.meta" in filename and ".lua" in filename and self.isStop(filename):
                     fullpath = os.path.join(parent, filename)
