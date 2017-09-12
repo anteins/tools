@@ -1,15 +1,16 @@
 @echo off  
 
 set PushFolder="C:/Users/xianbin/AppData/LocalLow/Magic Game/Novenia Fantasy/LuaTxt"
-set GameFolder=E:\Project\mywork1\client
+set GameFolder=E:\Project\android_platfrom\client
 set Root=%cd%
 set ScriptFolder=%Root%\script
 set OutputFolder=%Root%\output
 set UnsignedFolder=%OutputFolder%\unsigned
 set SignedFolder=%OutputFolder%\signed
 set BinFolder=%Root%\bin
-set Cs2luaFolder=%bin%\cs2lua
+set Cs2luaFolder=%BinFolder%\cs2lua
 set CsprojFolder=%GameFolder%\Assembly-CSharp.csproj
+set GameTempFolder=%GameFolder%\Temp
 set TempFolder=%Root%\tmp
 
 if "%1" == "-cs2lua" (
@@ -38,16 +39,31 @@ if "%1" == "-zip" (
 )
 
 echo "usage: Run.bat [-cs2lua|-xlua|-sign|-push|-zip]"
-echo "-cs2lua	use cs2lua.exe transform c# script to lua script."
-echo "-xlua format lua script to xlua script style."
-echo "-sign xlua signed script"
-echo "-push push script to target unity folder"
-echo "-zip get a script.zip"
+echo "-cs2lua	transform c# script to lua script."
+echo "-xlua 	format lua script to xluaStyle."
+echo "-sign 	signed lua script"
+echo "-push 	push lua script to target folder(unity assets folder)"
+echo "-zip 		get a script.zip"
 goto _End
 
 :_CS2LUA
-pushd %Cs2luaFolder%\bin
-%Cs2luaFolder%\bin\Cs2Lua.exe -ext lua -xlua %CsprojFolder%
+if not exist %GameTempFolder% (
+	md %GameTempFolder%
+)
+
+if not exist %GameTempFolder%\bin (
+	md %GameTempFolder%\bin
+)
+
+if not exist %GameTempFolder%\bin\Debug (
+	md %GameTempFolder%\bin\Debug
+	
+)
+
+echo A|xcopy %GameFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameTempFolder%\bin\Debug\
+
+pushd %Cs2luaFolder%
+%Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %CsprojFolder%
 popd
 goto _End
 
