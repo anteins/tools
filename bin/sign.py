@@ -9,10 +9,10 @@ class MixTool:
     PassingScript = [
         "GlobalConfig.lua"
     ]
-    PushToFolder = ""
     RootFolder = os.getcwd() + "\\"
     OutputFolder = ""
     SignedFolder = ""
+    FilesSignatureEXE = ""
     DiffScriptFolder = RootFolder + "diff" + "\\"
     BinFolder = RootFolder + "bin" + "\\"
     _origin = 0
@@ -30,19 +30,17 @@ class MixTool:
         print "="*20
         print 'platform', self.platform
         print 'mix',   self.mixcode
-        print "PushToFolder", self.PushToFolder
+        print "FilesSignature", self.FilesSignatureEXE
         print "OutputFolder", self.OutputFolder
         print "SignedFolder", self.SignedFolder
         print "="*20
         def MixScript():
             self.Backup()
             self.Mix()
-            # self.CopyToPath()
          
         def SignScript():
             self.Backup()
             self.Sign()
-            # self.CopyToPath()
          
         def DumpDiffVersion():
             self.Diff()
@@ -84,7 +82,7 @@ class MixTool:
                             self.mixcode = int(argv[i+1])
                     else:
                         # run.bat argvs
-                        self.PushToFolder = argv[1]
+                        self.FilesSignatureEXE = argv[1]
                         self.OutputFolder = argv[2]
                         self.SignedFolder = argv[3]
                         
@@ -262,11 +260,6 @@ class MixTool:
         f.write("}\n")
         f.close()       
 
-    def CopyToPath(self):
-        if os.path.exists(self.PushToFolder):
-            shutil.rmtree(self.PushToFolder)
-        shutil.copytree(self.SignedFolder, self.PushToFolder)
-
     def Backup(self):
         if not os.path.exists(self.SignedFolder):
             os.makedirs(self.SignedFolder)
@@ -276,7 +269,7 @@ class MixTool:
 
     def Sign(self):
         os.chdir(self.BinFolder)
-        self.do_cmd("FilesSignature.exe {0} {1}".format(self.SignedFolder, self.SignedFolder), True)
+        self.do_cmd("{0} {1} {2}".format(self.FilesSignatureEXE, self.SignedFolder, self.SignedFolder), True)
         os.chdir(self.RootFolder)
 
     def Mix(self):

@@ -7,8 +7,9 @@ set UnsignedFolder=%OutputFolder%\unsigned
 set SignedFolder=%OutputFolder%\signed
 set BinFolder=%Root%\bin
 set Cs2luaFolder=%BinFolder%\cs2lua
-set CsprojFolder=%GameFolder%\Assembly-CSharp.csproj
-set GameTempFolder=%GameFolder%\Temp
+set Csproj=%GameFolder%\Assembly-CSharp.csproj
+set GameTemp=%GameFolder%\Temp
+set GameTools=%GameFolder%\Tools
 set TempFolder=%Root%\tmp
 
 for /f "tokens=1,2* delims==" %%i in ( config.ini ) do (
@@ -58,23 +59,23 @@ echo "-zip 		get a script.zip"
 goto _End
 
 :_CS2LUA
-if not exist %GameTempFolder% (
-	md %GameTempFolder%
+if not exist %GameTemp% (
+	md %GameTemp%
 )
 
-if not exist %GameTempFolder%\bin (
-	md %GameTempFolder%\bin
+if not exist %GameTemp%\bin (
+	md %GameTemp%\bin
 )
 
-if not exist %GameTempFolder%\bin\Debug (
-	md %GameTempFolder%\bin\Debug
+if not exist %GameTemp%\bin\Debug (
+	md %GameTemp%\bin\Debug
 	
 )
 
-echo A|xcopy %GameFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameTempFolder%\bin\Debug\
+echo A|xcopy %GameFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameTemp%\bin\Debug\
 
 pushd %Cs2luaFolder%
-%Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %CsprojFolder%
+%Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %Csproj%
 popd
 goto _End
 
@@ -91,12 +92,16 @@ echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
 goto _End
 
 :_SIGN
-if exist %OutputFolder% (
-	if not exist %SignedFolder% (
-		md %SignedFolder%
-	)
-	python %BinFolder%/sign.py %PushFolder% %UnsignedFolder% %SignedFolder%
+if not exist %GameTools% (
+	goto _End
 )
+if not exist %OutputFolder% (
+	md %OutputFolder%
+)
+if not exist %SignedFolder% (
+	md %SignedFolder%
+)
+python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 goto _End
 
 :_PUSH
