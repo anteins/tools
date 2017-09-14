@@ -222,7 +222,7 @@ class MixTool:
             # self.do_cmd("del /f /s /q " + self.SignedFolder + "init.lua", True)
             # self.do_cmd("rename " + self.SignedFolder + "tmp.lua " + "init.lua", True)
 
-    ## 递归创建            
+    ## 递归创建         
     def CreatePath(self, path):
         (filepath, tempfilename) = os.path.split(path)
         lpath = filepath.replace(self.RootFolder, "").split('\\')

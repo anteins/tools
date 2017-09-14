@@ -563,7 +563,7 @@ class FindType(object):
                 _argv1 = _argv1.split("_")
                 if len(_argv1)>1:
                     _argv1 = _argv1[1]
-                    line = self.doMatch(line, _origin, ["{0} GameLuaApi.new_List_1(typeof({1}))", lmatch[0], _argv1])
+                    line = self.doMatch(line, _origin, ["{0} XLuaScriptUtils.new_List_1(typeof({1}))", lmatch[0], _argv1])
 
             if "newexterndictionary" in line:
                 def __handler2(subline, debug=False):
@@ -574,7 +574,7 @@ class FindType(object):
                         if len(largv)>=2:
                             _key = "typeof({0})".format(largv[1])
                             _value = "typeof({0})".format(largv[2])
-                            mixsub2 = self.doMatch(subline, _origin, ["GameLuaApi.new_Dictionary_2({0}, {1})", _key, _value])
+                            mixsub2 = self.doMatch(subline, _origin, ["XLuaScriptUtils.new_Dictionary_2({0}, {1})", _key, _value])
                     return mixsub2
                 line = self.match_mult_bracket(line, "newexterndictionary", __handler2)
 
@@ -885,7 +885,7 @@ class FindType(object):
             line = line.replace(", nil, nil, nil);", ");")
             if line.strip().startswith("this.base"):
                 line = line.replace("this.base", "--this.base")
-            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "GameLuaApi.GameResources()")
+            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "XLuaScriptUtils.GameResources()")
             line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\ncoroutine.yield(coroutine.coroutine)\nend")
             
 
@@ -947,8 +947,8 @@ class FindType(object):
         return lNewBlock
 
     def make_init_module(self, lModels):
-        path = self.OutputFolder + "\init.lua"
-        lInput = [
+        initFile = self.OutputFolder + "\\" + "init.lua"
+        lCore = [
             "util = require 'xlua.util'\n",
             "xutf8 = require 'xutf8'\n",
             "require 'xstr'\n",
@@ -960,15 +960,22 @@ class FindType(object):
             "require 'Main'\n",
             "require 'LogicStatic'\n",
         ]
+
+        lGame = []
         for mod in lModels:
             if not mod in "init":
-                lInput.append("require '{0}'\n".format(mod))
+                lGame.append("require '{0}'\n".format(mod))
 
-        lInput.append("\nMain:__init()\n")
-        with open(path, "w") as f_w:
-            f_w.writelines(lInput)
+        
 
-    
+        if os.path.exists(self.OutputFolder):
+            with open(initFile, "w") as f_w:
+                f_w.writelines("------------ core require ------------\n")
+                f_w.writelines(lCore)
+                f_w.writelines("------------ game require ------------\n")
+                f_w.writelines(lGame)
+                f_w.writelines("\nMain:__init()\n")
+                
     def init_module_info(self, filename):
         self.luaModel["name"] = filename.replace(".lua", "")
         self.luaModel["module"] = self.LUA_MODEL_TAG + self.luaModel["name"]

@@ -340,17 +340,10 @@ function isnil( obj )
     if isluatype(obj) then
         return obj == nil
     else
-        if obj ~= nil then
-            -- GameLog("~~~~~A: ", obj, type(obj), typeof(obj))
-            local iden = tostring(obj)
-            if iden == "<invalid c# object>" then
-                return true
-            else
-                return obj:Equals(nil)
-            end
-        else
+        if obj == nil then
             return true
         end
+        return obj:IsNull()
     end
 end
 

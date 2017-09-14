@@ -14,7 +14,7 @@ function LogicStatic:Ref(ref)
 end
 
 function LogicStatic:Get( data )
-    local net = GameLuaApi.NetworkClient()
+    local net = XLuaScriptUtils.NetworkClient()
     if net and net._server then
         if net._server and net._server.isReady then
             if net._server._dataCache then
@@ -29,7 +29,7 @@ function LogicStatic:Get( data )
 end
 
 function LogicStatic:Get( data , key)
-    local net = GameLuaApi.NetworkClient()
+    local net = XLuaScriptUtils.NetworkClient()
     if net and net._server then
         if net._server and net._server.isReady then
             if net._server._dataCache then
@@ -43,7 +43,7 @@ function LogicStatic:Get( data , key)
 end
 
 function LogicStatic:GetList( data , match)
-    local net = GameLuaApi.NetworkClient()
+    local net = XLuaScriptUtils.NetworkClient()
     if net and net._server then
         -- GameLog(">L ", type(net._server), net._server.isReady)
         if net._server and net._server.isReady then

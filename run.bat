@@ -1,7 +1,5 @@
 @echo off  
 
-set PushFolder="C:/Users/xianbin/AppData/LocalLow/Magic Game/Novenia Fantasy/LuaTxt"
-set GameFolder=E:\Project\android_platfrom\client
 set Root=%cd%
 set ScriptFolder=%Root%\script
 set OutputFolder=%Root%\output
@@ -12,6 +10,19 @@ set Cs2luaFolder=%BinFolder%\cs2lua
 set CsprojFolder=%GameFolder%\Assembly-CSharp.csproj
 set GameTempFolder=%GameFolder%\Temp
 set TempFolder=%Root%\tmp
+
+for /f "tokens=1,2* delims==" %%i in ( config.ini ) do (
+	if "%%i" == "project_path" (
+		set GameFolder="%%j"
+	)else if "%%i" == "push_path" (
+		set PushFolder="%%j"
+	)
+)
+
+echo GameFolder %GameFolder%
+echo PushFolder %PushFolder%
+if %GameFolder%=="" goto _End_PATH
+if %PushFolder%=="" goto _End_PATH
 
 if "%1" == "-cs2lua" (
 	echo "cs2lua"
@@ -71,7 +82,6 @@ del %ScriptFolder%\cs2lua*
 
 :_XLUA
 if exist %OutputFolder% (
-	echo "ok."
 	rd /s /q %OutputFolder%
 )
 md %OutputFolder%
@@ -82,12 +92,10 @@ goto _End
 
 :_SIGN
 if exist %OutputFolder% (
-	if exist %SignedFolder% (
-		echo "ok."
-	) else (
+	if not exist %SignedFolder% (
 		md %SignedFolder%
 	)
-	python %BinFolder%/mix_and_sign.py %PushFolder% %UnsignedFolder% %SignedFolder%
+	python %BinFolder%/sign.py %PushFolder% %UnsignedFolder% %SignedFolder%
 )
 goto _End
 
@@ -119,5 +127,8 @@ if exist %OutputFolder% (
 )
 
 goto _End
+
+:_End_PATH
+echo "path error."
 
 :_End
