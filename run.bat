@@ -60,20 +60,22 @@ goto _End
 
 :_CS2LUA
 if not exist %GameTemp% (
+	echo md %GameTemp%
 	md %GameTemp%
 )
 
 if not exist %GameTemp%\bin (
+	echo md %GameTemp%\bin
 	md %GameTemp%\bin
 )
 
 if not exist %GameTemp%\bin\Debug (
+	echo md %GameTemp%\bin\Debug
 	md %GameTemp%\bin\Debug
-	
 )
 
 echo A|xcopy %GameFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameTemp%\bin\Debug\
-
+pause
 pushd %Cs2luaFolder%
 %Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %Csproj%
 popd
@@ -87,9 +89,10 @@ if exist %OutputFolder% (
 )
 md %OutputFolder%
 
-%BinFolder%/cs2lua_format_xlua.py %ScriptFolder% %UnsignedFolder%
+%BinFolder%/transCode.py %ScriptFolder% %UnsignedFolder%
 echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
-goto _End
+::goto _End
+goto _SIGN
 
 :_SIGN
 if not exist %GameTools% (
@@ -101,7 +104,7 @@ if not exist %OutputFolder% (
 if not exist %SignedFolder% (
 	md %SignedFolder%
 )
-python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+python %BinFolder%/signCode.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 goto _End
 
 :_PUSH

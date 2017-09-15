@@ -343,7 +343,14 @@ function isnil( obj )
         if obj == nil then
             return true
         end
-        return obj:IsNull()
+        local ret = nil
+        try(function ( ... )
+            ret = obj:IsNull()
+        end, function ( _e_ )
+            ret = obj:Equals(nil)
+        end)
+        
+        return ret
     end
 end
 
