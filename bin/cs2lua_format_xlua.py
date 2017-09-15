@@ -942,7 +942,6 @@ class FindType(object):
             for _t in lcstype:
                 line = self.ReplaceEx(line, _t, "CS.{0}".format(_t))
             line = self.ReplaceEx(line, "CS.CS.", "CS.")
-            line = line.replace(";", " ")
 
             lNewBlock.append(line)
         return lNewBlock

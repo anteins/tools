@@ -2,25 +2,25 @@
 
 import os,sys, re
 import shutil
-import utils
-import blockUtils
-import bracketUtils
-import matchUtils
+import utils.utils as utils
+import utils.blockUtils as blockUtils
+import utils.bracketUtils as bracketUtils
+import utils.matchUtils as matchUtils
 import xluaStyleBuilder
+
+import utils.common as common
+
 import ply.lex as lex
 import ply.yacc as yacc
 
-class FindType(object):
+class TransCode(object):
     ext = []
-    Filter = []
+    passFilter = []
     pathFilter = []
     ScriptFolder = ""
     OutputFolder = ""
     lines = []
-    limit = False
     luaModel = {}
-    S = 9   #tab
-    T = 32  #space
     LUA_MODEL_TAG = "_lua_"
     lNoHotfix = [
         "__init__", 
@@ -52,7 +52,7 @@ class FindType(object):
         return utils.IsTargetFile(filename, self._targets)
 
     def IsPassFile(self, filename):
-        return utils.IsPassFile(filename, self.Filter)
+        return utils.IsPassFile(filename, self.passFilter)
 
     def IsPassPath(self, path):
         return utils.IsPassPath(path, self.ScriptFolder, self.pathFilter)
@@ -108,7 +108,7 @@ class FindType(object):
 
     def setFilter(self, target, filte, path_filte):
         self.ext = target
-        self.Filter = filte
+        self.passFilter = filte
         self.pathFilter = path_filte
 
     def cmd(self, cmd, log=False):
@@ -120,14 +120,23 @@ class FindType(object):
 
     def get_defs_argv(self, name):
         _argv = []
-        for func in self.luaModel["functions"]:
+        for func in self.luaModel["hotfix_list_functions"]:
             if func[0] == name:
                 _argv = func[1]
                 break
         return _argv
 
-    def to_xlua_method_block(self, block):
-        _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], ["end;", []])
+    def trans_struct_style(self, block):
+        _debug = False
+        # if self.luaModel["name"] == "ChatExplainController":
+        #     _debug = True
+        _match, _merge, _block = self.get_block(
+            block, 
+            ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], 
+            ["end;", []], 
+            "",
+            _debug
+        )
         while _match != []:
             _newblock = []
             _count = 0
@@ -136,20 +145,28 @@ class FindType(object):
                 if _count == 1:
                     _origin, lmatch = self.Match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"], "")
                     _space = self.space_count(line)
-                    line = chr(self.S)*_space + "foreach({0}, function (item)".format(lmatch[1])
+                    line = chr(common.S)*_space + "foreach({0}, function (item)".format(lmatch[1])
                     for argv in lmatch[0].split(','):
                         if argv != "_":
-                            line = line + "\n{0}local {1} = item.current\n".format(chr(self.S)*(_space+1), argv)
+                            line = line + "\n{0}local {1} = item.current\n".format(chr(common.S)*(_space+1), argv)
                 elif _count == len(_block):
-                    line = chr(self.S)*(_space) + "end)\n"
+                    line = chr(common.S)*(_space) + "end)\n"
                 else:
-                    if line.strip() == "break;":
+                    if line.strip() == "break" or line.strip() == "break;":
                         _space = self.space_count(line)
-                        line = chr(self.S)*_space + "return \"break\";\n"
+                        line = chr(common.S)*_space + "return \"break\";\n"
                 _newblock.append(line)
 
+            if len(_newblock) == 0:
+                break
             block = self.merge_block(block, _newblock, _merge)
-            _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], ["end;", []])
+            _match, _merge, _block = self.get_block(
+                block, 
+                ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], 
+                ["end;", []], 
+                "",
+                _debug
+            )
 
         _newblock = []
         regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
@@ -159,12 +176,12 @@ class FindType(object):
                 if i == 0:
                     _s = self.space_count(line)
                     _ori1, _lma1 = self.Match(_match[0], "{0}({1}", ["[A-Za-z0-9_]*", "\w*.*"], "")
-                    line = chr(self.S) * _s + "EventDelegate.Add({0}\n".format(_lma1[1]) 
+                    line = chr(common.S) * _s + "EventDelegate.Add({0}\n".format(_lma1[1]) 
                 _newblock.append(line)
         block = self.merge_block(block, _newblock, _merge)
         return block
 
-    def tp_xlua_style_block(self, block):
+    def trans_line_style(self, block):
         return xluaStyleBuilder.lineBuilder(block)
 
     def write_init_file(self, lModels):
@@ -199,7 +216,7 @@ class FindType(object):
         self.luaModel["name"] = filename.replace(".lua", "")
         self.luaModel["module"] = self.LUA_MODEL_TAG + self.luaModel["name"]
         self.luaModel["defs"] = []
-        self.luaModel["functions"] = []
+        self.luaModel["hotfix_list_functions"] = []
     
     def get_head_block(self, mult_block):
         lRequire = []
@@ -230,7 +247,7 @@ class FindType(object):
         l_InitTb = []
         l_InitTb.append("function {0}:Init_Tb(ref)\n".format(self.luaModel["module"]))
         # for _import in _limport:
-        #     l_InitTb.append(chr(self.S) + "{0} = {1}\n".format(_import, _import))
+        #     l_InitTb.append(chr(common.S) + "{0} = {1}\n".format(_import, _import))
         l_InitTb.append("end\n\n")
         mult_block.append(l_InitTb)
         return mult_block
@@ -246,6 +263,7 @@ class FindType(object):
                 _argv =  _match[1].split(",")
                 if (_name in self.lNoHotfix):
                     continue
+
                 self.luaModel["defs"].append([_name, _argv, _info, _block, _offsetX])
 
         tmp_block = []
@@ -260,49 +278,57 @@ class FindType(object):
                 _isIEnumerator = False
                 offset_x = self.space_count(_FuncBlock[len(_FuncBlock)-1])
                 for idnex, line in enumerate(_FuncBlock):
-                    idnex = idnex + 1
-                    if idnex == 1:
+                    if idnex == 0:
                         _origin, _match = self.Match(line, "{0} = function({1})", [_sDefname, "\w.*"], "")
-                        if len(_match)>0:
+                        if len(_match) > 0:
                             _lDefargv =  _match[1].split(",")
                         else:
                             _lDefargv = []
                         _sDefargv = self.argv_l2s(_lDefargv, "no_this")
                         line = "function {0}:{1}({2})\n".format(self.luaModel["module"], _sDefname, _sDefargv)
+
                     if "wrapyield" in line:
                         _isIEnumerator = True
-                    if idnex == len(_FuncBlock)-1:
+                    if idnex == len(_FuncBlock):
                         if "return nil;" in line:
                             _isIEnumerator = True
                     def_block.append(line)
-                    if idnex == 1:
-                        def_block.append(chr(self.S) + "GameLog(\"" + "-"*30 + self.luaModel["module"] + " " + _sDefname + "-"*30 + "\")\n")
+                    if idnex == 0:
+                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.luaModel["module"] + " " + _sDefname + "-"*30 + "\")\n")
 
-                def_block_align = []
-                for line in def_block:
-                    offset = (self.space_count(line) - offset_x)
-                    if offset >=0:
-                        line = chr(self.S)*(offset) + line.lstrip()
-                    def_block_align.append(line)
-                def_block_align.append("\n")                
-                self.luaModel["functions"].append([_sDefname, _lDefargv, _isIEnumerator])
-                tmp_block.append([_sDefname, def_block_align])
+                def_block = self.alignBlockLines(def_block)
+
+                self.luaModel["hotfix_list_functions"].append([_sDefname, _lDefargv, _isIEnumerator])
+                tmp_block.append([_sDefname, def_block])
 
         for _tmp in tmp_block:
             _name, _block = _tmp[0:2]
             self.luaModel["cur_function"] = _name
-            _block = self.tp_xlua_style_block(_block)
-            _block = self.to_xlua_method_block(_block)
+            _block = self.trans_line_style(_block)
+            _block = self.trans_struct_style(_block)
             block.append(_block)
+
+
         return block
     
+    def alignBlockLines(self, block):
+        offsetX = self.space_count(block[len(block)-1])
+        def_block_align = []
+        for line in block:
+            offset = (self.space_count(line) - offsetX)
+            if offset >=0:
+                line = chr(common.S)*(offset) + line.lstrip()
+            def_block_align.append(line)
+        def_block_align.append("\n") 
+        return def_block_align  
+
     def get_hotfix_block(self, block):
         hotfix_block = []
         hotfix_block.append("function {0}:hotfix()\n".format(self.luaModel["module"]))
-        hotfix_block.append(chr(self.S) + "{0}:Init_Tb()\n".format(self.luaModel["module"]))
-        if len(self.luaModel["functions"]) > 0:
-            hotfix_block.append(chr(self.S) + "xlua.hotfix({0}, {{\n".format(self.luaModel["name"])),
-            for func in self.luaModel["functions"]:
+        hotfix_block.append(chr(common.S) + "{0}:Init_Tb()\n".format(self.luaModel["module"]))
+        if len(self.luaModel["hotfix_list_functions"]) > 0:
+            hotfix_block.append(chr(common.S) + "xlua.hotfix({0}, {{\n".format(self.luaModel["name"])),
+            for func in self.luaModel["hotfix_list_functions"]:
                 sFName = func[0]
                 sArgv = self.argv_l2s(func[1])
                 sNoArgv = self.argv_l2s(func[1], "no_this")
@@ -347,7 +373,6 @@ class FindType(object):
                 if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
                     fullname = os.path.join(parent, filename)
                     self.init_module_info(filename)
-                    self.limit = False
                     self.Read(parent, filename)
                     mods.append(self.luaModel["name"])
         self.write_init_file(mods)
@@ -365,7 +390,7 @@ class FindType(object):
                     f_w.write(line)
 
 if __name__=="__main__":
-    finder = FindType(sys.argv)
+    finder = TransCode(sys.argv)
     finder.setFilter(
         [".lua"], 
         #ignore file

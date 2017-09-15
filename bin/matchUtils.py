@@ -1,11 +1,7 @@
 
-SYMBOLS = {')':'('}
-SYMBOLS_L, SYMBOLS_R = SYMBOLS.values(), SYMBOLS.keys()
-S = 9   #tab
-T = 32  #space
-
 import os,sys, re
 import utils
+import common
 
 def Match(line, origin, char, isExReCompile, debug=False):
     matchP = origin.replace("(", "\(").replace(")", "\)")

@@ -1,8 +1,10 @@
 
 import os,sys, re
-import utils
-import matchUtils
-import bracketUtils
+import utils.utils as utils
+import utils.blockUtils as blockUtils
+import utils.bracketUtils as bracketUtils
+import utils.matchUtils as matchUtils
+import utils.common as common
 
 def ReplaceEx(line, origin, dest, debug=False):
     neworigin = r"\b{0}\b".format(origin)
@@ -17,7 +19,8 @@ def lineBuilder(block):
         line = ReplaceEx(line, "EightGameLogic", "CS.EightGame.Logic")
         line = ReplaceEx(line, "EightGameComponent", "CS.EightGame.Component")
         line = line.replace("\" + ", "\" .. ")
-        line = line.replace("end,", "end")
+        if line.strip() == "end,":
+            line = line.replace("end,", "end")
         
         _origin, lmatch = matchUtils.Match(line, "{0} newexternlist({1})", ["\w.*", "\w.*"], "")
         if lmatch != []:
@@ -67,26 +70,28 @@ def lineBuilder(block):
                 return mixsub2
             line = bracketUtils.match_mult_bracket(line, "condexp", __handler2)
 
-        _origin, lmatch = matchUtils.Match(line, "wrapyield({0})", ["\w*.*"], "")
-        if lmatch != []:
-            largv = utils.dump_argv(lmatch[0])
-            if len(largv)>=2:
-                _head = largv[0]
-                line = matchUtils.doMatch(line, _origin, ["coroutine.yield({0})", _head])
+        if "wrapyield" in line:
+            _origin, lmatch = matchUtils.Match(line, "wrapyield({0})", ["\w*.*"], "")
+            if lmatch != []:
+                largv = utils.dump_argv(lmatch[0])
+                if len(largv)>=2:
+                    _head = largv[0]
+                    line = matchUtils.doMatch(line, _origin, ["coroutine.yield({0})", _head])
 
-        _origin, lmatch = matchUtils.Match(line, "{0}:ForEach({1})", ["\w*.*", "\w*.*"], "")
-        if len(lmatch)>=1:
-            _offset = utils.space_count(line)
-            _list = lmatch[0].lstrip()
-            largv = utils.dump_argv(lmatch[1])
-            if len(largv)>0:
-                _func = largv[0]
-                _func = _func.strip().strip("(").strip(")")
-                _ori, _func2 = matchUtils.Match(_func, "function({0}){1}end", ["[A-Za-z0-9_\.\[\]]", "\w*.*"], "")
-                if len(_func2) > 0:
-                    _add = "{0} = {0}.current".format(_func2[0])
-                    _func = matchUtils.doMatch(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
-                    line = matchUtils.doMatch(line, _origin, ["{0}foreach({1}, {2})", chr(S)*_offset, _list, _func])
+        if "ForEach" in line:
+            _origin, lmatch = matchUtils.Match(line, "{0}:ForEach({1})", ["\w*.*", "\w*.*"], "")
+            if len(lmatch)>=1:
+                _offset = utils.space_count(line)
+                _list = lmatch[0].lstrip()
+                largv = utils.dump_argv(lmatch[1])
+                if len(largv)>0:
+                    _func = largv[0]
+                    _func = _func.strip().strip("(").strip(")")
+                    _ori, _func2 = matchUtils.Match(_func, "function({0}){1}end", ["[A-Za-z0-9_\.\[\]]", "\w*.*"], "")
+                    if len(_func2) > 0:
+                        _add = "{0} = {0}.current".format(_func2[0])
+                        _func = matchUtils.doMatch(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
+                        line = matchUtils.doMatch(line, _origin, ["{0}foreach({1}, {2})", chr(common.S)*_offset, _list, _func])
         
         if "typeas" in line:
             def __handler2(subline, debug=False):
@@ -254,16 +259,17 @@ def lineBuilder(block):
                 return mixsub2
             line = bracketUtils.match_mult_bracket(line, "externdelegationcomparewithnil", __handler2)
 
-        def __handler2(subline, debug=False):
-            mixsub2 = subline
-            _origin, lmatch = matchUtils.Match(subline, "System.Text.Encoding.UTF8:GetString({0})", ["\w*.*"], "")
-            if lmatch != []:
-                largv = utils.dump_argv(lmatch[0])
-                if len(largv)>0:
-                    _obj = largv[0]
-                    mixsub2 = matchUtils.doMatch(subline, _origin, ["{0}", _obj])
-            return mixsub2
-        line = bracketUtils.match_mult_bracket(line, "System.Text.Encoding.UTF8:GetString", __handler2)
+        if "System.Text.Encoding.UTF8:GetString" in line:
+            def __handler2(subline, debug=False):
+                mixsub2 = subline
+                _origin, lmatch = matchUtils.Match(subline, "System.Text.Encoding.UTF8:GetString({0})", ["\w*.*"], "")
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>0:
+                        _obj = largv[0]
+                        mixsub2 = matchUtils.doMatch(subline, _origin, ["{0}", _obj])
+                return mixsub2
+            line = bracketUtils.match_mult_bracket(line, "System.Text.Encoding.UTF8:GetString", __handler2)
 
         # def __handler2(subline, debug=False):
         #     _origin, lmatch = matchUtils.Match(subline, "wrapconst({0})", ["\w*.*"], "")
@@ -276,25 +282,28 @@ def lineBuilder(block):
         #     return line
         # line = bracketUtils.match_mult_bracket(line, "wrapconst", __handler2)
 
-        def __handler2(subline, debug=False):
-            mixsub2 = subline
-            _origin, lmatch = matchUtils.Match(subline, "wrapchar({0})", ["\w*.*"], "")
-            if lmatch != []:
-                largv = utils.dump_argv(lmatch[0])
-                if len(largv)>=2:
-                    _obj = largv[0]
-                    mixsub2 = matchUtils.doMatch(subline, _origin, ["{0}", _obj])
-            return mixsub2
-        line = bracketUtils.match_mult_bracket(line, "wrapchar", __handler2)
+        if "wrapchar" in line:
+            def __handler2(subline, debug=False):
+                mixsub2 = subline
+                _origin, lmatch = matchUtils.Match(subline, "wrapchar({0})", ["\w*.*"], "")
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=2:
+                        _obj = largv[0]
+                        mixsub2 = matchUtils.doMatch(subline, _origin, ["{0}", _obj])
+                return mixsub2
+            line = bracketUtils.match_mult_bracket(line, "wrapchar", __handler2)
         
         _o, lmatch  = matchUtils.Match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], "")
         if lmatch != []:
             if len(lmatch)>=2 and lmatch[0] != "" and lmatch[1] != "":
                 ok, line  = matchUtils.Play(line, "{0}[{1}]", "DictGetValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
-        ok, line = matchUtils.Play(line, "#{0}", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
+
+        if not "System.String.Format" in line:
+            ok, line = matchUtils.Play(line, "#{0}", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[]*"], _debug)
+
         ok, line = matchUtils.Play(line, "{0}.Count", "obj_len({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"], _debug)
         ok, line = matchUtils.Play(line, "{0}.Length", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
-
         _origin, lmatch  = matchUtils.Match(line, "if ({0} == {1}) then", ["[A-Za-z0-9_\.\[\]]*", "[0-9]*"], "")
         if len(lmatch)>1:
             line = matchUtils.doMatch(line, _origin, ["if (CS.System.Convert.ToInt32({0}) == {1}) then", lmatch[0], lmatch[1]])
@@ -355,9 +364,10 @@ def lineBuilder(block):
         line = line.replace("LogicStatic.Get", "LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
 
-        _origin, lmatch = matchUtils.Match(line, ":GetComponent({0})", ["\w.*"], "")
+        _origin, lmatch = matchUtils.Match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"], "")
         if len(lmatch) > 0:
             reps = lmatch[0].split(".")[-1]
+            print lmatch
             if reps.startswith("typeof"):
                 reps = reps.replace("typeof", "").strip().strip("(").strip(")")
             if not "\"" in reps:
