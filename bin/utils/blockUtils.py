@@ -5,10 +5,7 @@ import bracketUtils
 import utils
 import common
 
-def get_block(lines, start_u, end_u, style=[""], debug=False):
-    bAlign = True
-    if "no_align" in style:
-        bAlign = False
+def get_block(lines, start_u, style=[""], debug=False):
     iStartAlign = 0
     iEndAlign = 0
     bGetStart = False
@@ -17,14 +14,12 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
     _rBlock = []
     _mergeInfo = []
     _start_u = []
-    _end_u = []
     for index, line in enumerate(lines):
         if not bGetStart:
             tmp = start_u[1:]
             _origin, lmatch = matchUtils.Match(line, start_u[0], start_u[1:], "")
             if debug:
                 print "~: ", utils.space_count(line), line, lmatch
-               
             if len(lmatch)>0:
                 if isinstance(lmatch, tuple):
                     _start_u = list(lmatch[0])
@@ -35,17 +30,10 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
                 _mergeInfo.append(index)
                 _rBlock.append(line)
         elif bGetStart:
-            _origin, _endMatch = matchUtils.Match(line, end_u[0], end_u[1], "")
-
             iEndAlign = utils.space_count(line)
             isAlignMatch = iEndAlign == iStartAlign
-
             if isAlignMatch:
                 bGetEnd = True
-                if isinstance(_endMatch, tuple):
-                    _end_u = list(_endMatch)
-                else:
-                    _end_u = _endMatch
                 if debug:
                     print "#: ", iEndAlign, line
                 _mergeInfo.append(index)
@@ -68,8 +56,6 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
         if debug:
             print "fck!!!!! no end line.", len(_rBlock)
         if len(_rBlock) == 1 and bracketUtils.check_ok_bracket(_rBlock[0]):
-            if debug:
-                print "but is ok."
             isOK = True
     else:
         isOK = True
@@ -91,11 +77,11 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
     _match_u = _start_u
     return _match_u, _mergeInfo, _rBlock
 
-def get_mult_block(block, start_u, end_u, style=[""], debug=False):
+def get_mult_block(block, start_u, style=[""], debug=False):
     target_block = block
     rList = []
     while len(target_block) > 0:
-        _match1, _info1, _block = get_block(target_block, start_u, end_u, style, debug)
+        _match1, _info1, _block = get_block(target_block, start_u, style, debug)
         if debug:
             print "-"*100
         rList.append([_match1, _info1, _block])

@@ -94,15 +94,14 @@ class AutoLua(object):
     def merge_mult_bracket(self, line, lbracket, handler, debug):
         return bracketUtils.merge_mult_bracket(line, lbracket, handler, debug)
 
-    def get_block(self, lines, start_u, end_u, style=[""], debug=False):
-        return blockUtils.get_block(lines, start_u, end_u, style, debug)
+    def get_block(self, lines, start_u, style=[""], debug=False):
+        return blockUtils.get_block(lines, start_u, style, debug)
 
-    def get_mult_block(self, block, start_u, end_u, style=[""], debug=False):
-        return blockUtils.get_mult_block(block, start_u, end_u, style, debug)
+    def get_mult_block(self, block, start_u, style=[""], debug=False):
+        return blockUtils.get_mult_block(block, start_u, style, debug)
 
     def argv_l2s(self, lArgv, iType=""):
         return utils.argv_l2s(lArgv, iType)
-
 
     def set_filter(self, target, filte, path_filte):
         self.ext = target
@@ -118,7 +117,7 @@ class AutoLua(object):
 
     def get_defs_argv(self, name):
         _argv = []
-        for func in self.model["hotfix_list_functions"]:
+        for func in self.model["hotfixs"]:
             if func[0] == name:
                 _argv = func[1]
                 break
@@ -126,13 +125,7 @@ class AutoLua(object):
 
     def trans_struct_style(self, block):
         _debug = False
-        _match, _merge, _block = self.get_block(
-            block, 
-            ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], 
-            ["end;", []], 
-            "",
-            _debug
-        )
+        _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
         while _match != []:
             _newblock = []
             _count = 0
@@ -156,17 +149,11 @@ class AutoLua(object):
             if len(_newblock) == 0:
                 break
             block = self.merge_block(block, _newblock, _merge)
-            _match, _merge, _block = self.get_block(
-                block, 
-                ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], 
-                ["end;", []], 
-                "",
-                _debug
-            )
+            _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
 
         _newblock = []
         regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
-        _match, _merge, _block = self.get_block(block, ["EventDelegate.Add__{0}", "\w*.*"], ["", []], [""])
+        _match, _merge, _block = self.get_block(block, ["EventDelegate.Add__{0}", "\w*.*"])
         if _match != []:
             for i, line in enumerate(_block):
                 if i == 0:
@@ -210,9 +197,9 @@ class AutoLua(object):
                 
     def init_module_info(self, filename):
         self.model["name"] = filename.replace(".lua", "")
-        self.model["module"] = self.luatag + self.model["name"]
-        self.model["defs"] = []
-        self.model["hotfix_list_functions"] = []
+        self.model["luamod"] = self.luatag + self.model["name"]
+        self.model["methods"] = []
+        self.model["hotfixs"] = []
     
     def dump_head_block(self):
         lblock = []
@@ -220,13 +207,13 @@ class AutoLua(object):
             print "no lines input."
             return lblock
             
-        _match, _info, _block = self.get_block(self.lines, ["require {0}", "\w*.*"], [" = {{", []])
+        _match, _info, _block = self.get_block(self.lines, ["require {0}", "\w*.*"])
         lblock.append("\n")
 
         lInput = [
             "local this = nil\n",
-            "{0} = BaseCom:New('{0}')\n".format(self.model["module"]),
-            "function {0}:Ref(ref)\n".format(self.model["module"]),
+            "{0} = BaseCom:New('{0}')\n".format(self.model["luamod"]),
+            "function {0}:Ref(ref)\n".format(self.model["luamod"]),
             "   if ref then\n",
             "       this = ref\n",
             "   end\n",
@@ -234,73 +221,68 @@ class AutoLua(object):
             "end\n\n",
         ]
         lblock.append(lInput)
-
         return lblock
 
-    def dump_method_block(self, block):
-        _match, _info, _instance_methods_block = self.get_block(self.lines, ["local instance_methods = {{"], ["}};", []])
-        _blocks = self.get_mult_block(_instance_methods_block, ["{0} = function({1})", "\w.*", "\w.*"], ["", []])
-        for _block_u in _blocks:
-            _match, _info, _block = _block_u[0:3]
+    def dump_method_block(self, outblock):
+        _match, _info, methods_block = self.get_block(self.lines, ["local instance_methods = {{"])
+        methods = self.get_mult_block(methods_block, ["{0} = function({1})", "\w.*", "\w.*"])
+        for method in methods:
+            _match, _info, _block = method[0:3]
             if _match != []:
-                _offsetX = 0
+                offx = 0
                 _name = _match[0].strip()
                 _argv =  _match[1].split(",")
                 if (_name in self.lNoHotfix):
                     continue
-
-                self.model["defs"].append([_name, _argv, _info, _block, _offsetX])
+                self.model["methods"].append([_name, _argv, _info, _block, offx])
 
         tmp_block = []
-        for defs in self.model["defs"]:
-            _sDefname   = defs[0]
-            _lDefArgv   = defs[1]
-            funcblock  = defs[3]
-            _offsetX    = defs[4]
-            if funcblock != []:
+        for method in self.model["methods"]:
+            name, argv, _tmp_, content = method[0:4]
+            if content != []:
                 def_block = []
-                ldefargv = []
+                largv = []
                 isIEnumerator = False
-                offset_x = self.space_count(funcblock[len(funcblock)-1])
-                _include_base = False
-                for idnex, line in enumerate(funcblock):
+                offset_x = self.space_count(content[len(content)-1])
+                isban = False
+                for idnex, line in enumerate(content):
                     if idnex == 0:
-                        _origin, _match = self.Match(line, "{0} = function({1})", [_sDefname, "\w.*"], "")
+                        _origin, _match = self.Match(line, "{0} = function({1})", [name, "\w.*"], "")
                         if len(_match) > 0:
-                            ldefargv =  _match[1].split(",")
+                            largv =  _match[1].split(",")
                         else:
-                            ldefargv = []
-                        _sDefargv = self.argv_l2s(ldefargv, "no_this")
-                        line = "function {0}:{1}({2})\n".format(self.model["module"], _sDefname, _sDefargv)
+                            largv = []
+                        argvstr = self.argv_l2s(largv, "no_this")
+                        line = "function {0}:{1}({2})\n".format(self.model["luamod"], name, argvstr)
                     else:
                         if "this.base" in line or "LogicStatic" in line:
-                            _include_base = True
+                            isban = True
                             break
 
                     if "wrapyield" in line:
                         isIEnumerator = True
 
-                    if idnex == len(funcblock):
+                    if idnex == len(content):
                         if "return nil;" in line:
                             isIEnumerator = True
 
                     def_block.append(line)
                     if idnex == 0:
-                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.model["module"] + " " + _sDefname + "-"*30 + "\")\n")
+                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.model["luamod"] + " " + name + "-"*30 + "\")\n")
 
-                if not _include_base:
+                if not isban:
                     def_block = self.align_block_lines(def_block)
-                    self.model["hotfix_list_functions"].append([_sDefname, ldefargv, isIEnumerator])
-                    tmp_block.append([_sDefname, def_block])
+                    self.model["hotfixs"].append([name, largv, isIEnumerator])
+                    tmp_block.append([name, def_block])
 
-        for _tmp in tmp_block:
-            _name, _block = _tmp[0:2]
-            self.model["cur_function"] = _name
+        for tmp in tmp_block:
+            name, _block = tmp[0:2]
+            self.model["cur_method"] = name
             _block = self.trans_line_style(_block)
             _block = self.trans_struct_style(_block)
-            block.append(_block)
+            outblock.append(_block)
 
-        return block
+        return outblock
     
     def align_block_lines(self, block):
         offsetX = self.space_count(block[len(block)-1])
@@ -315,10 +297,10 @@ class AutoLua(object):
 
     def dump_hotfix_block(self, block):
         hotfix_block = []
-        hotfix_block.append("function {0}:hotfix()\n".format(self.model["module"]))
-        if len(self.model["hotfix_list_functions"]) > 0:
+        hotfix_block.append("function {0}:hotfix()\n".format(self.model["luamod"]))
+        if len(self.model["hotfixs"]) > 0:
             hotfix_block.append(chr(common.S) + "xlua.hotfix({0}, {{\n".format(self.model["name"])),
-            for func in self.model["hotfix_list_functions"]:
+            for func in self.model["hotfixs"]:
                 sFName = func[0]
                 sArgv = self.argv_l2s(func[1])
                 sNoArgv = self.argv_l2s(func[1], "no_this")
@@ -328,24 +310,24 @@ class AutoLua(object):
                 if isIEnumerator:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.model["module"]),
+                        "           {0}:Ref(this)\n".format(self.model["luamod"]),
                         "           return util.cs_generator(function()\n",
-                        "               {0}:{1}({2})\n".format(self.model["module"], sFName, sNoArgv),
+                        "               {0}:{1}({2})\n".format(self.model["luamod"], sFName, sNoArgv),
                         "           end)\n",
                         "       end,\n",
                     ]
                 else:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.model["module"]),
-                        "           return {0}:{1}({2})\n".format(self.model["module"], sFName, sNoArgv),
+                        "           {0}:Ref(this)\n".format(self.model["luamod"]),
+                        "           return {0}:{1}({2})\n".format(self.model["luamod"], sFName, sNoArgv),
                         "       end,\n",
                     ]
                 for line in lInput:
                     hotfix_block.append(line)
             hotfix_block.append("   })\n")
         hotfix_block.append("end\n\n")
-        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(self.model["module"]))
+        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(self.model["luamod"]))
         block.append(hotfix_block)
         return block
 
