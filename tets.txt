@@ -1,0 +1,1 @@
+this:SetUnreadSpriteActive((ChatMsgManager.Instance:GetUnReadPrivateMsgs()obj_len() > 0));

@@ -36,13 +36,11 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
                 _rBlock.append(line)
         elif bGetStart:
             _origin, _endMatch = matchUtils.Match(line, end_u[0], end_u[1], "")
-            if bAlign:
-                iEndAlign = utils.space_count(line)
-                isAlignMatch = iEndAlign == iStartAlign
-                isMatch = isAlignMatch
-            else:
-                isMatch = len(_endMatch) > 0
-            if isMatch:
+
+            iEndAlign = utils.space_count(line)
+            isAlignMatch = iEndAlign == iStartAlign
+
+            if isAlignMatch:
                 bGetEnd = True
                 if isinstance(_endMatch, tuple):
                     _end_u = list(_endMatch)
@@ -90,8 +88,6 @@ def get_block(lines, start_u, end_u, style=[""], debug=False):
         _rBlock = []
         _mergeInfo = []
 
-    for _end in _end_u:
-        _start_u.append(_end)
     _match_u = _start_u
     return _match_u, _mergeInfo, _rBlock
 

@@ -293,6 +293,30 @@ def lineBuilder(block):
                         mixsub2 = matchUtils.doMatch(subline, _origin, ["{0}", _obj])
                 return mixsub2
             line = bracketUtils.match_mult_bracket(line, "wrapchar", __handler2)
+
+        if "GetService" in line:
+            def __handler2(subline, debug=False):
+                mixsub2 = subline
+                _origin, lmatch = matchUtils.Match(subline, "GetService({0})", ["\w*.*"], "")
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=1:
+                        _obj = largv[0]
+                        mixsub2 = matchUtils.doMatch(subline, _origin, ["GetService(typeof({0}))", _obj])
+                return mixsub2
+            line = bracketUtils.match_mult_bracket(line, "GetService", __handler2)
+
+        if "CS.UnityEngine.Random.Range" in line:
+            def __handler2(subline, debug=False):
+                mixsub2 = subline
+                _origin, lmatch = matchUtils.Match(subline, "CS.UnityEngine.Random.Range({0})", ["\w*.*"], "")
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=1:
+                        _obj = largv[0]
+                        mixsub2 = matchUtils.doMatch(subline, _origin, ["math.ceil(CS.UnityEngine.Random.Range({0}))", _obj])
+                return mixsub2
+            line = bracketUtils.match_mult_bracket(line, "CS.UnityEngine.Random.Range", __handler2)
         
         _o, lmatch  = matchUtils.Match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], "")
         if lmatch != []:
@@ -352,16 +376,14 @@ def lineBuilder(block):
 
         line = line.replace("Ms +", "Ms ..")
         line = line.replace(", nil, nil, nil);", ");")
-        if line.strip().startswith("this.base"):
-            line = line.replace("this.base", "--this.base")
         line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "XLuaScriptUtils.GameResources()")
+        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.ServiceCenter)", "XLuaScriptUtils.ServiceCenter()")
+        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameRandom)", "XLuaScriptUtils.GameRandom()")
         line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\ncoroutine.yield(coroutine.coroutine)\nend")
-        
-
-        line = line.replace("LogicStatic.Get__System_Predicate_T", "LogicStatic:Get")
-        line = line.replace("LogicStatic.Get__System_Int32", "LogicStatic:Get")
-        line = line.replace("LogicStatic.Get__System_Int64", "LogicStatic:Get")
-        line = line.replace("LogicStatic.Get", "LogicStatic:Get")
+        line = line.replace("LogicStatic.Get__System_Predicate_T", "mylua.LogicStatic:Get")
+        line = line.replace("LogicStatic.Get__System_Int32", "mylua.LogicStatic:Get")
+        line = line.replace("LogicStatic.Get__System_Int64", "mylua.LogicStatic:Get")
+        line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
 
         _origin, lmatch = matchUtils.Match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"], "")
@@ -413,7 +435,8 @@ def lineBuilder(block):
             line = ReplaceEx(line, _t, "CS.{0}".format(_t))
 
         line = ReplaceEx(line, "CS.CS.", "CS.")
-        line = line.replace(";", " ")
+        if not line.strip().startswith("local"):
+            line = line.replace(";", " ")
 
         lNewBlock.append(line)
     return lNewBlock

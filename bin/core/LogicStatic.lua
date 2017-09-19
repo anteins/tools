@@ -3,15 +3,8 @@
     封装C# LogicStatic
 ]]
 
-local this = nil
-LogicStatic = BaseCom:New("LogicStatic")
-
-function LogicStatic:Ref(ref)
-	if ref then
-		this = ref
-	end
-	return this
-end
+mylua = {}
+local LogicStatic = {}
 
 function LogicStatic:Get( data )
     local net = XLuaScriptUtils.NetworkClient()
@@ -57,4 +50,8 @@ function LogicStatic:GetList( data , match)
         end
     end
 end
+
+mylua = {
+    LogicStatic = LogicStatic,
+}
 

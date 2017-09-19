@@ -6,22 +6,22 @@ import utils.utils as utils
 import utils.blockUtils as blockUtils
 import utils.bracketUtils as bracketUtils
 import utils.matchUtils as matchUtils
-import xluaStyleBuilder
+import stylebuilder
 
 import utils.common as common
 
 import ply.lex as lex
 import ply.yacc as yacc
 
-class TransCode(object):
+class AutoLua(object):
     ext = []
     passFilter = []
     pathFilter = []
     ScriptFolder = ""
     OutputFolder = ""
     lines = []
-    luaModel = {}
-    LUA_MODEL_TAG = "_lua_"
+    model = {}
+    luatag = "_lua_"
     lNoHotfix = [
         "__init__", 
         "__ctor1__", 
@@ -34,8 +34,6 @@ class TransCode(object):
         "OnUpdate",
         "Update",
     ]
-    _noimport = ["LogicStatic"]
-
     _targets = []
 
     def __init__(self, argv):
@@ -106,7 +104,7 @@ class TransCode(object):
         return utils.argv_l2s(lArgv, iType)
 
 
-    def setFilter(self, target, filte, path_filte):
+    def set_filter(self, target, filte, path_filte):
         self.ext = target
         self.passFilter = filte
         self.pathFilter = path_filte
@@ -120,7 +118,7 @@ class TransCode(object):
 
     def get_defs_argv(self, name):
         _argv = []
-        for func in self.luaModel["hotfix_list_functions"]:
+        for func in self.model["hotfix_list_functions"]:
             if func[0] == name:
                 _argv = func[1]
                 break
@@ -128,8 +126,6 @@ class TransCode(object):
 
     def trans_struct_style(self, block):
         _debug = False
-        # if self.luaModel["name"] == "ChatExplainController":
-        #     _debug = True
         _match, _merge, _block = self.get_block(
             block, 
             ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], 
@@ -182,7 +178,7 @@ class TransCode(object):
         return block
 
     def trans_line_style(self, block):
-        return xluaStyleBuilder.lineBuilder(block)
+        return stylebuilder.lineBuilder(block)
 
     def write_init_file(self, lModels):
         initFile = self.OutputFolder + "\\" + "init.lua"
@@ -213,46 +209,35 @@ class TransCode(object):
                 f_w.writelines("\nMain:__init()\n")
                 
     def init_module_info(self, filename):
-        self.luaModel["name"] = filename.replace(".lua", "")
-        self.luaModel["module"] = self.LUA_MODEL_TAG + self.luaModel["name"]
-        self.luaModel["defs"] = []
-        self.luaModel["hotfix_list_functions"] = []
+        self.model["name"] = filename.replace(".lua", "")
+        self.model["module"] = self.luatag + self.model["name"]
+        self.model["defs"] = []
+        self.model["hotfix_list_functions"] = []
     
-    def get_head_block(self, mult_block):
-        lRequire = []
-        _limport = []
-        _match, _info, _require_block = self.get_block(self.lines, ["require {0}", "\w*.*"], [" = {{", []])
-        for line in _require_block:
-            if "require" in line:
-                _import = line.replace("\n", "").replace(";", "").replace("\"", "").split(" ")[1]
-                if not "_" in _import and not _import in self._noimport:
-                   # lRequire.append("local {0} = nil\n".format(_import))
-                   _limport.append(_import)
-
-        lRequire.append("\n")
-        mult_block.append(lRequire)
+    def dump_head_block(self):
+        lblock = []
+        if self.lines == None or len(self.lines) == 0:
+            print "no lines input."
+            return lblock
+            
+        _match, _info, _block = self.get_block(self.lines, ["require {0}", "\w*.*"], [" = {{", []])
+        lblock.append("\n")
 
         lInput = [
             "local this = nil\n",
-            "{0} = BaseCom:New('{0}')\n".format(self.luaModel["module"]),
-            "function {0}:Ref(ref)\n".format(self.luaModel["module"]),
+            "{0} = BaseCom:New('{0}')\n".format(self.model["module"]),
+            "function {0}:Ref(ref)\n".format(self.model["module"]),
             "   if ref then\n",
             "       this = ref\n",
             "   end\n",
             "   return this\n",
             "end\n\n",
         ]
-        mult_block.append(lInput)
+        lblock.append(lInput)
 
-        l_InitTb = []
-        l_InitTb.append("function {0}:Init_Tb(ref)\n".format(self.luaModel["module"]))
-        # for _import in _limport:
-        #     l_InitTb.append(chr(common.S) + "{0} = {1}\n".format(_import, _import))
-        l_InitTb.append("end\n\n")
-        mult_block.append(l_InitTb)
-        return mult_block
+        return lblock
 
-    def get_method_block(self, block):
+    def dump_method_block(self, block):
         _match, _info, _instance_methods_block = self.get_block(self.lines, ["local instance_methods = {{"], ["}};", []])
         _blocks = self.get_mult_block(_instance_methods_block, ["{0} = function({1})", "\w.*", "\w.*"], ["", []])
         for _block_u in _blocks:
@@ -264,54 +249,60 @@ class TransCode(object):
                 if (_name in self.lNoHotfix):
                     continue
 
-                self.luaModel["defs"].append([_name, _argv, _info, _block, _offsetX])
+                self.model["defs"].append([_name, _argv, _info, _block, _offsetX])
 
         tmp_block = []
-        for _def in self.luaModel["defs"]:
-            _sDefname   = _def[0]
-            _lDefArgv   = _def[1]
-            _FuncBlock  = _def[3]
-            _offsetX    = _def[4]
-            if _FuncBlock != []:
+        for defs in self.model["defs"]:
+            _sDefname   = defs[0]
+            _lDefArgv   = defs[1]
+            funcblock  = defs[3]
+            _offsetX    = defs[4]
+            if funcblock != []:
                 def_block = []
-                _lDefargv = []
-                _isIEnumerator = False
-                offset_x = self.space_count(_FuncBlock[len(_FuncBlock)-1])
-                for idnex, line in enumerate(_FuncBlock):
+                ldefargv = []
+                isIEnumerator = False
+                offset_x = self.space_count(funcblock[len(funcblock)-1])
+                _include_base = False
+                for idnex, line in enumerate(funcblock):
                     if idnex == 0:
                         _origin, _match = self.Match(line, "{0} = function({1})", [_sDefname, "\w.*"], "")
                         if len(_match) > 0:
-                            _lDefargv =  _match[1].split(",")
+                            ldefargv =  _match[1].split(",")
                         else:
-                            _lDefargv = []
-                        _sDefargv = self.argv_l2s(_lDefargv, "no_this")
-                        line = "function {0}:{1}({2})\n".format(self.luaModel["module"], _sDefname, _sDefargv)
+                            ldefargv = []
+                        _sDefargv = self.argv_l2s(ldefargv, "no_this")
+                        line = "function {0}:{1}({2})\n".format(self.model["module"], _sDefname, _sDefargv)
+                    else:
+                        if "this.base" in line or "LogicStatic" in line:
+                            _include_base = True
+                            break
 
                     if "wrapyield" in line:
-                        _isIEnumerator = True
-                    if idnex == len(_FuncBlock):
+                        isIEnumerator = True
+
+                    if idnex == len(funcblock):
                         if "return nil;" in line:
-                            _isIEnumerator = True
+                            isIEnumerator = True
+
                     def_block.append(line)
                     if idnex == 0:
-                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.luaModel["module"] + " " + _sDefname + "-"*30 + "\")\n")
+                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.model["module"] + " " + _sDefname + "-"*30 + "\")\n")
 
-                def_block = self.alignBlockLines(def_block)
-
-                self.luaModel["hotfix_list_functions"].append([_sDefname, _lDefargv, _isIEnumerator])
-                tmp_block.append([_sDefname, def_block])
+                if not _include_base:
+                    def_block = self.align_block_lines(def_block)
+                    self.model["hotfix_list_functions"].append([_sDefname, ldefargv, isIEnumerator])
+                    tmp_block.append([_sDefname, def_block])
 
         for _tmp in tmp_block:
             _name, _block = _tmp[0:2]
-            self.luaModel["cur_function"] = _name
+            self.model["cur_function"] = _name
             _block = self.trans_line_style(_block)
             _block = self.trans_struct_style(_block)
             block.append(_block)
 
-
         return block
     
-    def alignBlockLines(self, block):
+    def align_block_lines(self, block):
         offsetX = self.space_count(block[len(block)-1])
         def_block_align = []
         for line in block:
@@ -322,13 +313,12 @@ class TransCode(object):
         def_block_align.append("\n") 
         return def_block_align  
 
-    def get_hotfix_block(self, block):
+    def dump_hotfix_block(self, block):
         hotfix_block = []
-        hotfix_block.append("function {0}:hotfix()\n".format(self.luaModel["module"]))
-        hotfix_block.append(chr(common.S) + "{0}:Init_Tb()\n".format(self.luaModel["module"]))
-        if len(self.luaModel["hotfix_list_functions"]) > 0:
-            hotfix_block.append(chr(common.S) + "xlua.hotfix({0}, {{\n".format(self.luaModel["name"])),
-            for func in self.luaModel["hotfix_list_functions"]:
+        hotfix_block.append("function {0}:hotfix()\n".format(self.model["module"]))
+        if len(self.model["hotfix_list_functions"]) > 0:
+            hotfix_block.append(chr(common.S) + "xlua.hotfix({0}, {{\n".format(self.model["name"])),
+            for func in self.model["hotfix_list_functions"]:
                 sFName = func[0]
                 sArgv = self.argv_l2s(func[1])
                 sNoArgv = self.argv_l2s(func[1], "no_this")
@@ -338,32 +328,31 @@ class TransCode(object):
                 if isIEnumerator:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.luaModel["module"]),
+                        "           {0}:Ref(this)\n".format(self.model["module"]),
                         "           return util.cs_generator(function()\n",
-                        "               {0}:{1}({2})\n".format(self.luaModel["module"], sFName, sNoArgv),
+                        "               {0}:{1}({2})\n".format(self.model["module"], sFName, sNoArgv),
                         "           end)\n",
                         "       end,\n",
                     ]
                 else:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.luaModel["module"]),
-                        "           return {0}:{1}({2})\n".format(self.luaModel["module"], sFName, sNoArgv),
+                        "           {0}:Ref(this)\n".format(self.model["module"]),
+                        "           return {0}:{1}({2})\n".format(self.model["module"], sFName, sNoArgv),
                         "       end,\n",
                     ]
                 for line in lInput:
                     hotfix_block.append(line)
             hotfix_block.append("   })\n")
         hotfix_block.append("end\n\n")
-        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(self.luaModel["module"]))
+        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(self.model["module"]))
         block.append(hotfix_block)
         return block
 
-    def getBlock(self):
-        lBlock = []
-        lBlock = self.get_head_block(lBlock)
-        lBlock = self.get_method_block(lBlock)
-        lBlock = self.get_hotfix_block(lBlock)
+    def dump_block(self):
+        lBlock = self.dump_head_block()
+        lBlock = self.dump_method_block(lBlock)
+        lBlock = self.dump_hotfix_block(lBlock)
         return lBlock
 
     def find(self, target=""):
@@ -374,24 +363,27 @@ class TransCode(object):
                     fullname = os.path.join(parent, filename)
                     self.init_module_info(filename)
                     self.Read(parent, filename)
-                    mods.append(self.luaModel["name"])
+                    mods.append(self.model["name"])
         self.write_init_file(mods)
 
     def Read(self, parent, filename):
         print "-"*50, filename, "-"*50
         with open(self.ScriptFolder + "\\" + filename, "r") as f:
             self.lines = f.readlines()
-        lBlock = self.getBlock()
+
+        lblock = self.dump_block()
+
         if not os.path.exists(self.OutputFolder):
             os.makedirs(self.OutputFolder)
+
         with open(self.OutputFolder + "\\" + filename, "w") as f_w:
-            for block in lBlock:
+            for block in lblock:
                 for line in block:
                     f_w.write(line)
 
 if __name__=="__main__":
-    finder = TransCode(sys.argv)
-    finder.setFilter(
+    finder = AutoLua(sys.argv)
+    finder.set_filter(
         [".lua"], 
         #ignore file
         ["manifest.lua", "tmp.lua", "init.lua"],
