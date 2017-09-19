@@ -17,7 +17,7 @@ def get_block(lines, start_u, style=[""], debug=False):
     for index, line in enumerate(lines):
         if not bGetStart:
             tmp = start_u[1:]
-            _origin, lmatch = matchUtils.Match(line, start_u[0], start_u[1:], "")
+            lmatch = matchUtils.get_match(line, start_u[0], start_u[1:], "")
             if debug:
                 print "~: ", utils.space_count(line), line, lmatch
             if len(lmatch)>0:
@@ -55,7 +55,7 @@ def get_block(lines, start_u, style=[""], debug=False):
         isOK = False
         if debug:
             print "fck!!!!! no end line.", len(_rBlock)
-        if len(_rBlock) == 1 and bracketUtils.check_ok_bracket(_rBlock[0]):
+        if len(_rBlock) == 1 and bracketUtils.check_bracket(_rBlock[0]):
             isOK = True
     else:
         isOK = True

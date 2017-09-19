@@ -61,38 +61,14 @@ class AutoLua(object):
     def DebugInfo(self, debug, lines):
         utils.DebugInfo(debug, lines)
 
-    def Match(self, line, origin, char, isExReCompile, debug=False):
-        return matchUtils.Match(line, origin, char, isExReCompile, debug)
-
-    def Play(self, line, origin, dest, tuple_origin, debug=False):
-        return matchUtils.Play(line, origin, dest, tuple_origin, debug)
-
-    def doMatch(self, line, origin, ldest, debug=False):
-        return matchUtils.doMatch(line, origin, ldest, debug)
+    def get_match(self, line, origin, char, isExReCompile="", debug=False):
+        return matchUtils.get_match(line, origin, char, isExReCompile, debug)
 
     def merge_block(self, oldblock, newblock, info):
         return blockUtils.merge_block(oldblock, newblock, info)
 
-    def make_one_match(self, *obj):
-        return matchUtils.make_one_match(obj)
-
     def dump_argv(self, line, debug=False):
         return utils.dump_argv(line, debug)
-
-    def check_ok_bracket(self, line, debug=False):
-        return bracketUtils.check_ok_bracket(line, debug)
-
-    def get_bracket(self, line, startswith, debug=False):
-        return bracketUtils.get_bracket(line, startswith, debug)
-
-    def get_mult_bracket(self, line, startstr, debug=False):
-        return bracketUtils.get_mult_bracket(line, startstr, debug)
-
-    def match_mult_bracket(self, line, startstr, handler, debug=False):
-        return bracketUtils.match_mult_bracket(line, startstr, handler, debug)
-
-    def merge_mult_bracket(self, line, lbracket, handler, debug):
-        return bracketUtils.merge_mult_bracket(line, lbracket, handler, debug)
 
     def get_block(self, lines, start_u, style=[""], debug=False):
         return blockUtils.get_block(lines, start_u, style, debug)
@@ -132,7 +108,7 @@ class AutoLua(object):
             for line in _block:
                 _count = _count + 1
                 if _count == 1:
-                    _origin, lmatch = self.Match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"], "")
+                    lmatch = self.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
                     _space = self.space_count(line)
                     line = chr(common.S)*_space + "foreach({0}, function (item)".format(lmatch[1])
                     for argv in lmatch[0].split(','):
@@ -158,8 +134,8 @@ class AutoLua(object):
             for i, line in enumerate(_block):
                 if i == 0:
                     _s = self.space_count(line)
-                    _ori1, _lma1 = self.Match(_match[0], "{0}({1}", ["[A-Za-z0-9_]*", "\w*.*"], "")
-                    line = chr(common.S) * _s + "EventDelegate.Add({0}\n".format(_lma1[1]) 
+                    _lmatch = self.get_match(_match[0], "{0}({1}", ["[A-Za-z0-9_]*", "\w*.*"])
+                    line = chr(common.S) * _s + "EventDelegate.Add({0}\n".format(_lmatch[1]) 
                 _newblock.append(line)
         block = self.merge_block(block, _newblock, _merge)
         return block
@@ -247,9 +223,9 @@ class AutoLua(object):
                 isban = False
                 for idnex, line in enumerate(content):
                     if idnex == 0:
-                        _origin, _match = self.Match(line, "{0} = function({1})", [name, "\w.*"], "")
-                        if len(_match) > 0:
-                            largv =  _match[1].split(",")
+                        lmatch = self.get_match(line, "{0} = function({1})", [name, "\w.*"])
+                        if len(lmatch) > 0:
+                            largv =  lmatch[1].split(",")
                         else:
                             largv = []
                         argvstr = self.argv_l2s(largv, "no_this")

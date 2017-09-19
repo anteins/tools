@@ -6,11 +6,11 @@ T = 32  #space
 
 import os,sys, re
 
-def get_mult_bracket(line, startstr, debug=False):
+def find_all_bracket(line, startstr, debug=False):
     lbracket = []
     _count = 0
     while True:
-        subline = get_bracket(line, startstr)
+        subline = one_bracket(line, startstr)
         if subline != "":
             regx = "%" + str(_count) + "%"
             line = line.replace(subline, regx)
@@ -20,7 +20,7 @@ def get_mult_bracket(line, startstr, debug=False):
             break
     return lbracket
 
-def get_bracket(line, startswith, debug=False):
+def one_bracket(line, startswith, debug=False):
     _head = ""
     if line == "" or line.lstrip().startswith("--"):
         return _head
@@ -57,15 +57,15 @@ def get_bracket(line, startswith, debug=False):
             lchar.append(c)
     return _head
 
-def match_mult_bracket(line, startstr, handler, debug=False):
+def handle_bracket(line, startstr, handler, debug=False):
     if debug:
-        print "="*100
+        print "======== handle ========"
         print line.lstrip()
-    lbracket = get_mult_bracket(line, startstr, debug)
-    output = merge_mult_bracket(line, lbracket, handler, debug)
+    lbracket = find_all_bracket(line, startstr, debug)
+    output = merge_bracket(line, lbracket, handler, debug)
     return output
 
-def merge_mult_bracket(line, lbracket, handler, debug):
+def merge_bracket(line, lbracket, handler, debug):
     index = len(lbracket)-1
     output = line
     if index >=0:
@@ -78,7 +78,7 @@ def merge_mult_bracket(line, lbracket, handler, debug):
             output = output.replace(regx, _reps)
     return output
 
-def check_ok_bracket(line, debug=False):
+def check_bracket(line, debug=False):
     arr = []
     largv = []
     lchar = []
