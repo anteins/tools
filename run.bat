@@ -90,8 +90,8 @@ md %OutputFolder%
 
 %BinFolder%/autoLua.py %ScriptFolder% %UnsignedFolder%
 echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
-::goto _End
-goto _SIGN
+goto _End
+
 
 :_SIGN
 if not exist %GameTools% (
@@ -103,17 +103,26 @@ if not exist %OutputFolder% (
 if not exist %SignedFolder% (
 	md %SignedFolder%
 )
-python %BinFolder%/signcode.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 goto _End
 
 :_PUSH
-if exist %OutputFolder% (
-	rd /s /q %PushFolder%\
-	if exist %SignedFolder% (
-		echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
-	) else (
-		echo A|xcopy  /E %UnsignedFolder%\* %PushFolder%\
-	)
+if not exist %GameTools% (
+	goto _End
+)
+if not exist %OutputFolder% (
+	md %OutputFolder%
+)
+if not exist %SignedFolder% (
+	md %SignedFolder%
+)
+python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+
+rd /s /q %PushFolder%\
+if exist %SignedFolder% (
+	echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
+) else (
+	echo A|xcopy  /E %UnsignedFolder%\* %PushFolder%\
 )
 goto _End
 

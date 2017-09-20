@@ -218,7 +218,7 @@ end
     统一处理c#、lua类型的方法
 ]]
 
-function DictGetValue(dict, key)
+function getValue(dict, key)
     if isnil(dict) then
         return nil
     end
@@ -247,7 +247,7 @@ function DictGetValue(dict, key)
     return nil
 end
 
-function DictSetValue(dict, key, value)
+function setValue(dict, key, value)
     if isnil(dict) then
         return nil
     end
@@ -439,6 +439,12 @@ end
 
 function div(a, b)
     return math.ceil(a / b)
+end
+
+function Random_Range(a, b)
+    GameLog("Random_Range ", a, b)
+    local value = CS.UnityEngine.Random.Range(a, b )
+    return math.ceil(value)
 end
 
 function ToCharArray(str, m, n)

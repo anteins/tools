@@ -77,6 +77,7 @@ def handle_match(line, ldest, debug=False):
     return line
 
 def handle_match_by_origin(line, origin, ldest, debug=False):
+    global pri_origin_line
     pri_origin_line = origin
     return handle_match(line, ldest, debug)
 

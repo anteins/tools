@@ -99,9 +99,10 @@ class AutoLua(object):
                 break
         return _argv
 
-    def trans_struct_style(self, block):
+    def trans_blocks_style(self, block):
         _debug = False
-        _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
+        _match, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
+        _merge = blockUtils.merge_info()
         while _match != []:
             _newblock = []
             _count = 0
@@ -125,25 +126,27 @@ class AutoLua(object):
             if len(_newblock) == 0:
                 break
             block = self.merge_block(block, _newblock, _merge)
-            _match, _merge, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
+            _match, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
+            _merge = blockUtils.merge_info()
 
         _newblock = []
         regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
-        _match, _merge, _block = self.get_block(block, ["EventDelegate.Add__{0}", "\w*.*"])
+        _match, sub_block = self.get_block(block, ["EventDelegate.Add__{0}", "\w*.*"])
+        merge = blockUtils.merge_info()
         if _match != []:
-            for i, line in enumerate(_block):
+            for i, line in enumerate(sub_block):
                 if i == 0:
                     _s = self.space_count(line)
                     _lmatch = self.get_match(_match[0], "{0}({1}", ["[A-Za-z0-9_]*", "\w*.*"])
                     line = chr(common.S) * _s + "EventDelegate.Add({0}\n".format(_lmatch[1]) 
                 _newblock.append(line)
-        block = self.merge_block(block, _newblock, _merge)
+        block = self.merge_block(block, _newblock, merge)
         return block
 
-    def trans_line_style(self, block):
+    def trans_lines_style(self, block):
         return stylebuilder.lineBuilder(block)
 
-    def write_init_file(self, lModels):
+    def dump_initlua(self, lModels):
         initFile = self.OutputFolder + "\\" + "init.lua"
         lCore = [
             "util = require 'xlua.util'\n",
@@ -171,7 +174,7 @@ class AutoLua(object):
                 f_w.writelines(lGame)
                 f_w.writelines("\nMain:__init()\n")
                 
-    def init_module_info(self, filename):
+    def init_info(self, filename):
         self.model["name"] = filename.replace(".lua", "")
         self.model["luamod"] = self.luatag + self.model["name"]
         self.model["methods"] = []
@@ -183,7 +186,7 @@ class AutoLua(object):
             print "no lines input."
             return lblock
             
-        _match, _info, _block = self.get_block(self.lines, ["require {0}", "\w*.*"])
+        _match, _block = self.get_block(self.lines, ["require {0}", "\w*.*"])
         lblock.append("\n")
 
         lInput = [
@@ -200,7 +203,7 @@ class AutoLua(object):
         return lblock
 
     def dump_method_block(self, outblock):
-        _match, _info, methods_block = self.get_block(self.lines, ["local instance_methods = {{"])
+        _match, methods_block = self.get_block(self.lines, ["local instance_methods = {{"])
         methods = self.get_mult_block(methods_block, ["{0} = function({1})", "\w.*", "\w.*"])
         for method in methods:
             _match, _info, _block = method[0:3]
@@ -212,6 +215,12 @@ class AutoLua(object):
                     continue
                 self.model["methods"].append([_name, _argv, _info, _block, offx])
 
+        lban = [
+            "this.base", 
+            "LogicStatic", 
+            "AddMissingComponent", 
+            "UITweener.Begin"
+        ]
         tmp_block = []
         for method in self.model["methods"]:
             name, argv, _tmp_, content = method[0:4]
@@ -231,9 +240,10 @@ class AutoLua(object):
                         argvstr = self.argv_l2s(largv, "no_this")
                         line = "function {0}:{1}({2})\n".format(self.model["luamod"], name, argvstr)
                     else:
-                        if "this.base" in line or "LogicStatic" in line:
-                            isban = True
-                            break
+                        for ban in lban:
+                            if ban in line:
+                                isban = True
+                                break
 
                     if "wrapyield" in line:
                         isIEnumerator = True
@@ -244,7 +254,8 @@ class AutoLua(object):
 
                     def_block.append(line)
                     if idnex == 0:
-                        def_block.append(chr(common.S) + "GameLog(\"" + "-"*30 + self.model["luamod"] + " " + name + "-"*30 + "\")\n")
+                        log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, self.model["luamod"], name, "-"*30)
+                        def_block.append(log)
 
                 if not isban:
                     def_block = self.align_block_lines(def_block)
@@ -254,22 +265,22 @@ class AutoLua(object):
         for tmp in tmp_block:
             name, _block = tmp[0:2]
             self.model["cur_method"] = name
-            _block = self.trans_line_style(_block)
-            _block = self.trans_struct_style(_block)
+            _block = self.trans_lines_style(_block)
+            _block = self.trans_blocks_style(_block)
             outblock.append(_block)
 
         return outblock
     
     def align_block_lines(self, block):
         offsetX = self.space_count(block[len(block)-1])
-        def_block_align = []
+        lret = []
         for line in block:
             offset = (self.space_count(line) - offsetX)
             if offset >=0:
                 line = chr(common.S)*(offset) + line.lstrip()
-            def_block_align.append(line)
-        def_block_align.append("\n") 
-        return def_block_align  
+            lret.append(line)
+        lret.append("\n") 
+        return lret  
 
     def dump_hotfix_block(self, block):
         hotfix_block = []
@@ -319,10 +330,10 @@ class AutoLua(object):
             for filename in filenames:
                 if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
                     fullname = os.path.join(parent, filename)
-                    self.init_module_info(filename)
+                    self.init_info(filename)
                     self.Read(parent, filename)
                     mods.append(self.model["name"])
-        self.write_init_file(mods)
+        self.dump_initlua(mods)
 
     def Read(self, parent, filename):
         print "-"*50, filename, "-"*50

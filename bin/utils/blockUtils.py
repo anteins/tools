@@ -5,7 +5,14 @@ import bracketUtils
 import utils
 import common
 
+cur_merge_info = ""
+
+def merge_info():
+    global cur_merge_info
+    return cur_merge_info
+
 def get_block(lines, start_u, style=[""], debug=False):
+    global cur_merge_info
     iStartAlign = 0
     iEndAlign = 0
     bGetStart = False
@@ -75,29 +82,27 @@ def get_block(lines, start_u, style=[""], debug=False):
         _mergeInfo = []
 
     _match_u = _start_u
-    return _match_u, _mergeInfo, _rBlock
+    cur_merge_info = _mergeInfo
+    return _match_u, _rBlock
 
 def get_mult_block(block, start_u, style=[""], debug=False):
     target_block = block
-    rList = []
+    lret = []
     while len(target_block) > 0:
-        _match1, _info1, _block = get_block(target_block, start_u, style, debug)
-        if debug:
-            print "-"*100
-        rList.append([_match1, _info1, _block])
-        if len(_match1) == [] or len(_info1) == 0:
+        _match1, _block = get_block(target_block, start_u, style, debug)
+        merge = cur_merge_info
+        lret.append([_match1, merge, _block])
+        if len(_match1) == [] or len(merge) == 0:
             break
-        _start1 = _info1[0]
-        _end1 = _info1[len(_info1)-1]+1
-        if debug:
-            print _match1, _end1, len(target_block)
+        _start1 = merge[0]
+        _end1 = merge[len(merge)-1]+1
         target_block = target_block[_end1:]
-    return rList
+    return lret
 
 def merge_block(oldblock, newblock, info):
     if info and info != []:
-        _count = 0
+        count = 0
         for lnum in info:
-            oldblock[lnum] = newblock[_count]
-            _count = _count + 1
+            oldblock[lnum] = newblock[count]
+            count = count + 1
     return oldblock

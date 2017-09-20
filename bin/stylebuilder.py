@@ -19,16 +19,22 @@ def lineBuilder(outblock):
         line = abs_replace(line, "EightGameLogic", "CS.EightGame.Logic")
         line = abs_replace(line, "EightGameComponent", "CS.EightGame.Component")
         line = line.replace("\" + ", "\" .. ")
+
         if line.strip() == "end,":
             line = line.replace("end,", "end")
         
-        lmatch = matchUtils.get_match(line, "{0} newexternlist({1})", ["\w.*", "\w.*"])
-        if lmatch != []:
-            _argv1 = lmatch[1].split(",")[0]
-            _argv1 = _argv1.split("_")
-            if len(_argv1)>1:
-                _argv1 = _argv1[1]
-                line = matchUtils.handle_match(line, ["{0} XLuaScriptUtils.new_List_1(typeof({1}))", lmatch[0], _argv1])
+        if "newexternlist" in line:
+            lmatch = matchUtils.get_match(line, "{0} newexternlist({1})", ["\w.*", "\w.*"])
+            if lmatch != []:
+                largv = utils.dump_argv(lmatch[1])
+                
+                if len(largv)>1:
+                    llst = largv[0].split('.')
+                    ext = '.'.join(llst[:-1])
+                    ext = ext.split("_")[-1]
+                    name = llst[-1]
+                    argv = ext + "." + name
+                    line = matchUtils.handle_match(line, ["{0} XLuaScriptUtils.new_List_1(typeof({1}))", lmatch[0], argv])
 
         if "newexterndictionary" in line:
             def bracket_cb(subline, debug=False):
@@ -37,9 +43,9 @@ def lineBuilder(outblock):
                 if lmatch !=[]:
                     largv = lmatch[0].split(",")[0].split("_")
                     if len(largv)>=2:
-                        _key = "typeof({0})".format(largv[1])
-                        _value = "typeof({0})".format(largv[2])
-                        mixsub2 = matchUtils.handle_match(subline, ["XLuaScriptUtils.new_Dictionary_2({0}, {1})", _key, _value])
+                        key = "typeof({0})".format(largv[1])
+                        value = "typeof({0})".format(largv[2])
+                        mixsub2 = matchUtils.handle_match(subline, ["XLuaScriptUtils.new_Dictionary_2({0}, {1})", key, value])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "newexterndictionary", bracket_cb)
 
@@ -50,9 +56,9 @@ def lineBuilder(outblock):
                 if lmatch !=[]:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=3:
-                        _obj = largv[0]
-                        _lobjArgv = largv[3:]
-                        mixsub2 = matchUtils.handle_match(subline, ["{0}({1}) ", _obj, ",".join(_lobjArgv)])
+                        obj = largv[0]
+                        llargv = largv[3:]
+                        mixsub2 = matchUtils.handle_match(subline, ["{0}({1}) ", obj, ",".join(llargv)])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "newobject", bracket_cb)
 
@@ -64,10 +70,10 @@ def lineBuilder(outblock):
                 if lmatch !=[]:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=5:
-                        _head, _1, _mid, _2 = largv[0:4]
+                        head, _1, mid, _2 = largv[0:4]
                         reat = " ".join(largv[4:])
                         ok, reat = matchUtils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
-                        mixsub2 = matchUtils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", _head, _mid, reat])
+                        mixsub2 = matchUtils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", head, mid, reat])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "condexp", bracket_cb)
 
@@ -76,8 +82,8 @@ def lineBuilder(outblock):
             if lmatch != []:
                 largv = utils.dump_argv(lmatch[0])
                 if len(largv)>=2:
-                    _head = largv[0]
-                    line = matchUtils.handle_match(line, ["coroutine.yield({0})", _head])
+                    head = largv[0]
+                    line = matchUtils.handle_match(line, ["coroutine.yield({0})", head])
 
         if "ForEach" in line:
             lmatch = matchUtils.get_match(line, "{0}:ForEach({1})", ["\w*.*", "\w*.*"])
@@ -102,8 +108,8 @@ def lineBuilder(outblock):
                 if lmatch !=[]:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=2:
-                        _op  = largv[0]
-                        mixsub2 = matchUtils.handle_match(subline, ["{0}", _op])
+                        oper  = largv[0]
+                        mixsub2 = matchUtils.handle_match(subline, ["{0}", oper])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "typeas", bracket_cb)
 
@@ -114,12 +120,12 @@ def lineBuilder(outblock):
                 if lmatch !=[]:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=5:
-                        _op, _left, _right,  = largv[1:4]
-                        _op = _op.replace("\"", "")
-                        if _op == "/":
+                        oper, _left, _right,  = largv[1:4]
+                        oper = oper.replace("\"", "")
+                        if oper == "/":
                             mixsub2 = matchUtils.handle_match(subline, ["div({0}, {1}) ", _left, _right])
                         else:
-                            mixsub2 = matchUtils.handle_match(subline, ["{0}{1}{2} ", _left, _op, _right])
+                            mixsub2 = matchUtils.handle_match(subline, ["{0}{1}{2} ", _left, oper, _right])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "invokeintegeroperator", bracket_cb)
 
@@ -130,10 +136,9 @@ def lineBuilder(outblock):
                 if lmatch != []:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=3:
-                        _head, nil1, nil2, nil3 = largv[0:4]
-                        _argv = largv[4:]
-                        _argv = ",".join(_argv)
-                        mixsub2 = matchUtils.handle_match(subline, ["{0}({1})", _head, _argv])
+                        head, nil1, nil2, nil3 = largv[0:4]
+                        argv = ",".join(largv[4:])
+                        mixsub2 = matchUtils.handle_match(subline, ["{0}({1})", head, argv])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "newexternobject", bracket_cb)
 
@@ -147,9 +152,9 @@ def lineBuilder(outblock):
                         _obj, _nil, _type, _index = largv[0:4]
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["DictGetValue({0}, {1})", _obj, _index])
+                            mixsub2 = matchUtils.handle_match(subline, ["getValue({0}, {1})", _obj, _index])
                         elif _type == "set_Item" or _type == "set_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["DictSetValue({0}, {1})", _obj, _index])
+                            mixsub2 = matchUtils.handle_match(subline, ["setValue({0}, {1})", _obj, _index])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "getexterninstanceindexer", bracket_cb)
 
@@ -166,7 +171,7 @@ def lineBuilder(outblock):
                             if len(_fdes)>1:
                                 _fdes = _fdes[0].split("=")
                                 if len(_fdes)>1:
-                                    _fdes = _fdes[1] + " end)"
+                                    _fdes = _fdes[1] + " end" + ")"
                             if isinstance(_fdes, list):
                                 _fdes = _fdes[0]
                             _f = _f.replace("\"", "")
@@ -226,23 +231,27 @@ def lineBuilder(outblock):
                 if lmatch != []:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=3:
-                        _op = largv[1]
-                        _reat = largv[2:]
-                        if "op_Equality" in _op:
-                            _left, _right = _reat[0:2]
+                        op = largv[1]
+                        reat = largv[2:]
+                        if "op_Equality" in op:
+                            _left, _right = reat[0:2]
                             if "nil" in _right:
                                 mixsub2 = matchUtils.handle_match(subline, ["isnil({0})", _left, _right])
                             else:
                                 mixsub2 = matchUtils.handle_match(subline, ["{0} == {1}", _left, _right])
-                        elif "op_Addition" in _op:
-                            _left, _right = _reat[0:2]
+                        elif "op_Addition" in op:
+                            _left, _right = reat[0:2]
                             mixsub2 = matchUtils.handle_match(subline, ["{0} + {1}", _left, _right])
-                        elif "op_Subtraction" in _op:
-                            _left, _right = _reat[0:2]
+                        elif "op_Subtraction" in op:
+                            _left, _right = reat[0:2]
                             mixsub2 = matchUtils.handle_match(subline, ["{0} - {1}", _left, _right])
-                        elif "op_Implicit" in _op or "op_Inequality" in _op:
-                            _obj= _reat[0]
+                        elif "op_Multiply" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} * {1}", _left, _right])
+                        elif "op_Implicit" in op or "op_Inequality" in op:
+                            _obj= reat[0]
                             mixsub2 = matchUtils.handle_match(subline, ["not isnil({0})", _obj])
+
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "invokeexternoperator", bracket_cb)
 
@@ -311,66 +320,89 @@ def lineBuilder(outblock):
         if "UnityEngine.Random.Range" in line:
             def bracket_cb(subline, debug=False):
                 mixsub2 = subline
-                lmatch = matchUtils.get_match(subline, "CS.UnityEngine.Random.Range({0})", ["\w*.*"])
+                lmatch = matchUtils.get_match(subline, "UnityEngine.Random.Range({0})", ["\w*.*"])
                 if lmatch != []:
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=1:
-                        _obj = largv[0]
-                        mixsub2 = matchUtils.handle_match(subline, ["math.ceil(CS.UnityEngine.Random.Range({0}))", _obj])
+                        a, b = largv[0:2]
+                        mixsub2 = matchUtils.handle_match(subline, ["Random_Range({0}, {1})", a, b])
                 return mixsub2
-            line = bracketUtils.handle_bracket(line, "CS.UnityEngine.Random.Range", bracket_cb)
+            line = bracketUtils.handle_bracket(line, "UnityEngine.Random.Range", bracket_cb)
+
+        if "AddChild__UnityEngine_GameObject__UnityEngine_GameObject" in line:
+            def bracket_cb(subline, debug=False):
+                mixsub2 = subline
+                lmatch = matchUtils.get_match(subline, "AddChild__UnityEngine_GameObject__UnityEngine_GameObject({0})", ["\w*.*"])
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=1:
+                        a, b = largv[1:3]
+                        mixsub2 = matchUtils.handle_match(subline, ["AddChild({0}, {1})", a, b])
+                return mixsub2
+            line = bracketUtils.handle_bracket(line, "AddChild__UnityEngine_GameObject__UnityEngine_GameObject", bracket_cb)
+
+        # if "se_" in line and ":ToString()" in line:
+        #     tmp = line.split(",")
+        #     for item in tmp:
+        #         if "se_" in item and ":ToString()" in item:
+        #             lmatch = matchUtils.get_match(item, "se{0}.SE_{1}:ToString()", ["[a-zA-Z0-9_]*", "[a-zA-Z0-9_]*"])
+        #             if len(lmatch) > 1:
         
         lmatch  = matchUtils.get_match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"])
         if lmatch != []:
             if len(lmatch)>=2 and lmatch[0] != "" and lmatch[1] != "":
-                ok, line  = matchUtils.play_match(line, "{0}[{1}]", "DictGetValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
+                ok, line  = matchUtils.play_match(line, "{0}[{1}]", "getValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
 
         if not "System.String.Format" in line:
             ok, line = matchUtils.play_match(line, "#{0}", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[]*"], _debug)
 
         ok, line = matchUtils.play_match(line, "{0}.Count", "obj_len({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"], _debug)
         ok, line = matchUtils.play_match(line, "{0}.Length", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
+        ok, line = matchUtils.play_match(line, "{0}:ToString()", "obj2str({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
         
         lmatch  = matchUtils.get_match(line, "if ({0} == {1}) then", ["[A-Za-z0-9_\.\[\]]*", "[0-9]*"])
         if len(lmatch)>1:
             line = matchUtils.handle_match(line, ["if (CS.System.Convert.ToInt32({0}) == {1}) then", lmatch[0], lmatch[1]])
 
-        lmatch  = matchUtils.get_match(line, "(function() local __compiler_delegation{0}()", ["\w*.*"])
-        _reps = matchUtils.origin()
-        if len(lmatch)>0:
-            _fdes = lmatch[0].split(";")
-            if len(_fdes)>1:
-                _fdes = _fdes[0].split("=")
-                if len(_fdes)>1:
-                    _fdes = _fdes[1] + " end"
-            if isinstance(_fdes, list):
-                _fdes = _fdes[0]
-            _fdes = _fdes.strip().strip("(").strip(")")
-            line = line.replace(_reps, _fdes)
+        if "__compiler_delegation" in line:
+            lmatch  = matchUtils.get_match(line, "(function() local __compiler_delegation{0}()", ["\w*.*"])
+            origin = matchUtils.origin()
+            if len(lmatch)>0:
+                fdes = lmatch[0].split(";")
+                if len(fdes)>1:
+                    fdes = fdes[0].split("=")
+                    if len(fdes)>1:
+                        fdes = fdes[1] + " end"
+                if isinstance(fdes, list):
+                    fdes = fdes[0]
+                fdes = fdes.strip().strip("(").strip(")")
+                line = line.replace(origin, fdes)
 
         if "__" in line and not line.startswith("function "):
-            _regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
-            lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [_regx, _regx, "\w*.*"])
-            _origin = matchUtils.origin()
+            regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
+            lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
+            origin = matchUtils.origin()
             if len(lmatch) > 2:
-                _Head = lmatch[0].split(".")
-                _Argv = lmatch[2].strip().strip("(").strip(")")
-                largv = utils.dump_argv(_Argv)
-                if largv[0]==_Head[0]:
+                head = lmatch[0].split(".")
+                argv = lmatch[2].strip().strip("(").strip(")")
+                largv = utils.dump_argv(argv)
+                if largv[0]==head[0]:
                     del(largv[0])
                 if largv[-1] == ";":
                     del(largv[-1])
 
-                if len(_Head)>1:
-                    _reps = "{0}.{1}({2}".format(_Head[0], _Head[1], ",".join(largv))
+                if len(head)>1:
+                    rep = "{0}.{1}({2}".format(head[0], head[1], ",".join(largv))
                 else:
-                    _reps = "{0}({1}".format(_Head[0], ",".join(largv))
-                line = line.replace(_origin, _reps)
+                    rep = "{0}({1}".format(head[0], ",".join(largv))
+                line = line.replace(origin, rep)
 
         line = abs_replace(line, "System.Int32.Parse", "tonumber")
         line = abs_replace(line, "Eight.Framework.EIDebuger.Log", "GameLog")
         line = abs_replace(line, "ToString", "tostring")
         line = abs_replace(line, "Ms +", "Ms ..")
+        line = line.replace("+ System.String.Format", ".. System.String.Format")
+        
         line = abs_replace(line, "System.String.Empty", "\"\"")
 
         if line.strip() == "end),":
@@ -390,40 +422,47 @@ def lineBuilder(outblock):
         line = line.replace("LogicStatic.Get__System_Int64", "mylua.LogicStatic:Get")
         line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
+        line = line.replace("Set__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Set")
+        line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
+        
 
-        lmatch = matchUtils.get_match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"])
-        if len(lmatch) > 0:
-            reps = lmatch[0].split(".")[-1]
-            if reps.startswith("typeof"):
-                reps = reps.replace("typeof", "").strip().strip("(").strip(")")
-            if not "\"" in reps:
-                reps = "\"" + reps + "\""
-            line = line.replace(lmatch[0], reps)
+        if ":GetComponent" in line:
+            lmatch = matchUtils.get_match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"])
+            if len(lmatch) > 0:
+                reps = lmatch[0].split(".")[-1]
+                if reps.startswith("typeof"):
+                    reps = reps.replace("typeof", "").strip().strip("(").strip(")")
+                if not "\"" in reps:
+                    reps = "\"" + reps + "\""
+                line = line.replace(lmatch[0], reps)
 
-        lmatch = matchUtils.get_match(line, ":AddComponent({0})", ["[A-Za-z0-9_\.]*"])
-        if len(lmatch) > 0:
-            reps = lmatch[0].split(".")[-1]
-            if reps.startswith("typeof"):
-                reps = reps.replace("typeof", "").strip().strip("(").strip(")")
-            reps = "typeof(" + reps + ")"
-            line = line.replace(lmatch[0], reps)
-
-        lmatch = matchUtils.get_match(line, ":Push({0}, {1})", ["[A-Za-z0-9_\.]*", "[A-Za-z0-9_\.]*"])
-        if len(lmatch) > 1:
-            for match in lmatch:
-                reps = match.split(".")[-1]
+        if ":AddComponent" in line:
+            lmatch = matchUtils.get_match(line, ":AddComponent({0})", ["[A-Za-z0-9_\.]*"])
+            if len(lmatch) > 0:
+                reps = lmatch[0].split(".")[-1]
                 if reps.startswith("typeof"):
                     reps = reps.replace("typeof", "").strip().strip("(").strip(")")
                 reps = "typeof(" + reps + ")"
-                line = line.replace(match, reps)
+                line = line.replace(lmatch[0], reps)
 
-        lmatch = matchUtils.get_match(line, ":_PushView({0}, nil)", ["[A-Za-z0-9_\.]*"])
-        if len(lmatch) > 0:
-            reps = lmatch[0].split(".")[-1]
-            if reps.startswith("typeof"):
-                reps = reps.replace("typeof", "").strip().strip("(").strip(")")
-            reps = "typeof(" + reps + ")"
-            line = line.replace(lmatch[0], reps)
+        if ":Push" in line:
+            lmatch = matchUtils.get_match(line, ":Push({0}, {1})", ["[A-Za-z0-9_\.]*", "[A-Za-z0-9_\.]*"])
+            if len(lmatch) > 1:
+                for match in lmatch:
+                    reps = match.split(".")[-1]
+                    if reps.startswith("typeof"):
+                        reps = reps.replace("typeof", "").strip().strip("(").strip(")")
+                    reps = "typeof(" + reps + ")"
+                    line = line.replace(match, reps)
+
+        if ":_PushView" in line:
+            lmatch = matchUtils.get_match(line, ":_PushView({0}, nil)", ["[A-Za-z0-9_\.]*"])
+            if len(lmatch) > 0:
+                reps = lmatch[0].split(".")[-1]
+                if reps.startswith("typeof"):
+                    reps = reps.replace("typeof", "").strip().strip("(").strip(")")
+                reps = "typeof(" + reps + ")"
+                line = line.replace(lmatch[0], reps)
 
         cstype = [
             "Eight.Framework",
