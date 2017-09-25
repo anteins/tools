@@ -6,6 +6,7 @@ set OutputFolder=%Root%\output
 set UnsignedFolder=%OutputFolder%\unsigned
 set SignedFolder=%OutputFolder%\signed
 set BinFolder=%Root%\bin
+set PythonFolder=%Root%\bin\python
 set Cs2luaFolder=%BinFolder%\cs2lua
 set Csproj=%GameFolder%\Assembly-CSharp.csproj
 set GameTemp=%GameFolder%\Temp
@@ -88,7 +89,7 @@ if exist %OutputFolder% (
 )
 md %OutputFolder%
 
-%BinFolder%/autoLua.py %ScriptFolder% %UnsignedFolder%
+%PythonFolder%/main.py %ScriptFolder% %UnsignedFolder%
 echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
 goto _End
 
@@ -103,7 +104,7 @@ if not exist %OutputFolder% (
 if not exist %SignedFolder% (
 	md %SignedFolder%
 )
-python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 goto _End
 
 :_PUSH
@@ -116,7 +117,7 @@ if not exist %OutputFolder% (
 if not exist %SignedFolder% (
 	md %SignedFolder%
 )
-python %BinFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 
 rd /s /q %PushFolder%\
 if exist %SignedFolder% (

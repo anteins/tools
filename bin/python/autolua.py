@@ -6,14 +6,14 @@ import utils.utils as utils
 import utils.blockUtils as blockUtils
 import utils.bracketUtils as bracketUtils
 import utils.matchUtils as matchUtils
-import stylebuilder
+import transfer
 
 import utils.common as common
 
 import ply.lex as lex
 import ply.yacc as yacc
 
-class AutoLua(object):
+class Autolua(object):
     ext = []
     passFilter = []
     pathFilter = []
@@ -34,26 +34,9 @@ class AutoLua(object):
         "OnUpdate",
         "Update",
     ]
-    _targets = []
 
-    def __init__(self, argv):
-        if argv == None:
-            self._root = os.getcwd()
-        else:
-            self.ScriptFolder = argv[1]
-            self.OutputFolder = argv[2]
-
-    def IsTargetExt(self, filename):
-        return utils.IsTargetExt(filename, self.ext)
-
-    def IsTargetFile(self, filename):
-        return utils.IsTargetFile(filename, self._targets)
-
-    def IsPassFile(self, filename):
-        return utils.IsPassFile(filename, self.passFilter)
-
-    def IsPassPath(self, path):
-        return utils.IsPassPath(path, self.ScriptFolder, self.pathFilter)
+    def __init__(self):
+        pass
 
     def space_count(self, line, debug=False):
         return utils.space_count(line, debug)
@@ -78,11 +61,6 @@ class AutoLua(object):
 
     def argv_l2s(self, lArgv, iType=""):
         return utils.argv_l2s(lArgv, iType)
-
-    def set_filter(self, target, filte, path_filte):
-        self.ext = target
-        self.passFilter = filte
-        self.pathFilter = path_filte
 
     def cmd(self, cmd, log=False):
         if log:
@@ -144,7 +122,7 @@ class AutoLua(object):
         return block
 
     def trans_lines_style(self, block):
-        return stylebuilder.lineBuilder(block)
+        return transfer.lineBuilder(block)
 
     def dump_initlua(self, lModels):
         initFile = self.OutputFolder + "\\" + "init.lua"
@@ -219,11 +197,14 @@ class AutoLua(object):
             "this.base", 
             "LogicStatic", 
             "AddMissingComponent", 
-            "UITweener.Begin"
+            "UITweener.Begin",
+            "GetDataByCls",
+            "CheckAndAddComponet",
+            "GetComponentInChildren",
         ]
         tmp_block = []
         for method in self.model["methods"]:
-            name, argv, _tmp_, content = method[0:4]
+            methodname, argv, _tmp_, content = method[0:4]
             if content != []:
                 def_block = []
                 largv = []
@@ -232,13 +213,13 @@ class AutoLua(object):
                 isban = False
                 for idnex, line in enumerate(content):
                     if idnex == 0:
-                        lmatch = self.get_match(line, "{0} = function({1})", [name, "\w.*"])
+                        lmatch = self.get_match(line, "{0} = function({1})", [methodname, "\w.*"])
                         if len(lmatch) > 0:
                             largv =  lmatch[1].split(",")
                         else:
                             largv = []
                         argvstr = self.argv_l2s(largv, "no_this")
-                        line = "function {0}:{1}({2})\n".format(self.model["luamod"], name, argvstr)
+                        line = "function {0}:{1}({2})\n".format(self.model["luamod"], methodname, argvstr)
                     else:
                         for ban in lban:
                             if ban in line:
@@ -253,14 +234,14 @@ class AutoLua(object):
                             isIEnumerator = True
 
                     def_block.append(line)
-                    if idnex == 0:
-                        log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, self.model["luamod"], name, "-"*30)
-                        def_block.append(log)
+                    # if idnex == 0:
+                    #     log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, self.model["luamod"], methodname, "-"*30)
+                    #     def_block.append(log)
 
                 if not isban:
                     def_block = self.align_block_lines(def_block)
-                    self.model["hotfixs"].append([name, largv, isIEnumerator])
-                    tmp_block.append([name, def_block])
+                    self.model["hotfixs"].append([methodname, largv, isIEnumerator])
+                    tmp_block.append([methodname, def_block])
 
         for tmp in tmp_block:
             name, _block = tmp[0:2]
@@ -324,18 +305,33 @@ class AutoLua(object):
         lBlock = self.dump_hotfix_block(lBlock)
         return lBlock
 
-    def find(self, target=""):
-        mods = [] 
-        for parent, dirnames, filenames in os.walk(self.ScriptFolder):
-            for filename in filenames:
-                if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
-                    fullname = os.path.join(parent, filename)
-                    self.init_info(filename)
-                    self.Read(parent, filename)
-                    mods.append(self.model["name"])
-        self.dump_initlua(mods)
+    def set_data(self, argv):
+        self.ScriptFolder = argv[1]
+        self.OutputFolder = argv[2]
+        print "autolua ScriptFolder", self.ScriptFolder
+        print "autolua OutputFolder", self.OutputFolder
 
-    def Read(self, parent, filename):
+    mods = []
+    def onExcute(self, lines, parent, filename):
+        self.lines = lines
+        self.init_info(filename)
+        self.readfile(parent, filename)
+        self.mods.append(self.model["name"])
+
+    def onFinish(self):
+        self.dump_initlua(self.mods)
+
+        # mods = [] 
+        # for parent, dirnames, filenames in os.walk(self.ScriptFolder):
+        #     for filename in filenames:
+        #         if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
+        #             fullname = os.path.join(parent, filename)
+        #             self.init_info(filename)
+        #             self.Read(parent, filename)
+        #             mods.append(self.model["name"])
+        # self.dump_initlua(mods)
+
+    def readfile(self, parent, filename):
         print "-"*50, filename, "-"*50
         with open(self.ScriptFolder + "\\" + filename, "r") as f:
             self.lines = f.readlines()
@@ -350,14 +346,4 @@ class AutoLua(object):
                 for line in block:
                     f_w.write(line)
 
-if __name__=="__main__":
-    finder = AutoLua(sys.argv)
-    finder.set_filter(
-        [".lua"], 
-        #ignore file
-        ["manifest.lua", "tmp.lua", "init.lua"],
-        #ignore path
-        ["core"]
-    )
-    finder.find()
 

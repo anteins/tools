@@ -122,36 +122,3 @@ def space_count(line, debug=False):
         elif _start_match == True and _end_match == True:
             break
     return _hc
-
-
-
-def IsTargetExt(filename, ext):
-    flag = False
-    for target in ext:
-        if target in filename:
-            flag = True
-            break
-    return flag
-
-def IsTargetFile(filename, target):
-    flag = False
-    if target == []:
-        return True
-    else:
-        return filename in target
-
-def IsPassFile(filename, Filter):
-    flag = False
-    for filter in Filter:
-        if filter in filename:
-            flag = True
-            break
-    return flag
-
-def IsPassPath(path, scriptFolder, pathFilter):
-    flag = False
-    for filt in pathFilter:
-        if scriptFolder + "/" + filt == path:
-            flag = True
-            break
-    return flag

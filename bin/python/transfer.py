@@ -239,19 +239,33 @@ def lineBuilder(outblock):
                                 mixsub2 = matchUtils.handle_match(subline, ["isnil({0})", _left, _right])
                             else:
                                 mixsub2 = matchUtils.handle_match(subline, ["{0} == {1}", _left, _right])
-                        elif "op_Addition" in op:
+                        elif "op_Addition" in op or "op_UnaryPlus" in op:
                             _left, _right = reat[0:2]
                             mixsub2 = matchUtils.handle_match(subline, ["{0} + {1}", _left, _right])
-                        elif "op_Subtraction" in op:
+                        elif "op_Subtraction" in op or "op_UnaryNegation" in op:
                             _left, _right = reat[0:2]
                             mixsub2 = matchUtils.handle_match(subline, ["{0} - {1}", _left, _right])
                         elif "op_Multiply" in op:
                             _left, _right = reat[0:2]
                             mixsub2 = matchUtils.handle_match(subline, ["{0} * {1}", _left, _right])
+                        elif "op_Division" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} / {1}", _left, _right])
+                        elif "op_LessThan" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} < {1}", _left, _right])
+                        elif "op_GreaterThan" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} > {1}", _left, _right])
+                        elif "op_LessThanOrEqual" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} <= {1}", _left, _right])
+                        elif "op_GreaterThanOrEqual" in op:
+                            _left, _right = reat[0:2]
+                            mixsub2 = matchUtils.handle_match(subline, ["{0} >= {1}", _left, _right])
                         elif "op_Implicit" in op or "op_Inequality" in op:
                             _obj= reat[0]
                             mixsub2 = matchUtils.handle_match(subline, ["not isnil({0})", _obj])
-
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "invokeexternoperator", bracket_cb)
 
@@ -348,6 +362,24 @@ def lineBuilder(outblock):
         #             lmatch = matchUtils.get_match(item, "se{0}.SE_{1}:ToString()", ["[a-zA-Z0-9_]*", "[a-zA-Z0-9_]*"])
         #             if len(lmatch) > 1:
         
+        ltmp = [
+            "(1)",
+            "(2)",
+            "(3)",
+            "(4)",
+            "(5)",
+            "(6)",
+            "(7)",
+            "(8)",
+            "(9)",
+        ]
+        for ii in ltmp:
+            if ii in line:
+                lmatch  = matchUtils.get_match(line, "{0}({1})", ["[a-zA-Z0-9_\.]*", "[0-9]*"])
+                if lmatch != []:
+                    line = matchUtils.handle_match(line, ["{0}()", lmatch[0]])
+                break
+
         lmatch  = matchUtils.get_match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"])
         if lmatch != []:
             if len(lmatch)>=2 and lmatch[0] != "" and lmatch[1] != "":
@@ -379,6 +411,20 @@ def lineBuilder(outblock):
                 line = line.replace(origin, fdes)
 
         if "__" in line and not line.startswith("function "):
+            if "GetDataByCls__" in line:
+                line = line.replace("GetDataByCls__System_Int64", "GetDataByCls")
+                line = line.replace("GetDataByCls__System_Int32", "GetDataByCls")
+            elif "Get__System" in line:
+                line = line.replace("LogicStatic.Get__System_Predicate_T", "mylua.LogicStatic:Get")
+                line = line.replace("LogicStatic.Get__System_Int32", "mylua.LogicStatic:Get")
+                line = line.replace("LogicStatic.Get__System_Int64", "mylua.LogicStatic:Get")
+            elif "__EventDelegate_Callback" in line:
+                line = line.replace("Set__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Set")
+                line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
+            elif "SetData__System_Object" in line:
+                line = line.replace("SetData__System_Object", "SetData")
+                
+
             regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
             lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
             origin = matchUtils.origin()
@@ -416,14 +462,13 @@ def lineBuilder(outblock):
         line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "XLuaScriptUtils.GameResources()")
         line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.ServiceCenter)", "XLuaScriptUtils.ServiceCenter()")
         line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameRandom)", "XLuaScriptUtils.GameRandom()")
+        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.NetworkClient)", "XLuaScriptUtils.NetworkClient()")
+        
         line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\ncoroutine.yield(coroutine.coroutine)\nend")
-        line = line.replace("LogicStatic.Get__System_Predicate_T", "mylua.LogicStatic:Get")
-        line = line.replace("LogicStatic.Get__System_Int32", "mylua.LogicStatic:Get")
-        line = line.replace("LogicStatic.Get__System_Int64", "mylua.LogicStatic:Get")
+        
         line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
-        line = line.replace("Set__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Set")
-        line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
+        
         
 
         if ":GetComponent" in line:
