@@ -224,9 +224,6 @@ function getValue(dict, key)
     end
 
     if isluatype(dict) then
-        if type(key) == "number" then
-            key = key
-        end
         return dict[key]
     else
         local enum = dict:GetEnumerator()

@@ -24,7 +24,7 @@ def get_block(lines, start_u, style=[""], debug=False):
     for index, line in enumerate(lines):
         if not bGetStart:
             tmp = start_u[1:]
-            lmatch = matchUtils.get_match(line, start_u[0], start_u[1:], "")
+            lmatch = matchUtils.get_match(line, start_u[0], start_u[1:])
             if debug:
                 print "~: ", utils.space_count(line), line, lmatch
             if len(lmatch)>0:

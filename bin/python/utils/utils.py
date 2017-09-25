@@ -3,6 +3,11 @@ import common
 
 lchar =[]
 lArgv = []
+stack = []
+lkeyvalue = {
+    "signle_bracket":False,
+    "bracket":False
+}
 
 def DebugInfo(debug, lines):
     if debug:
@@ -12,72 +17,72 @@ def DebugInfo(debug, lines):
         print sStr
 
 def dump_argv(line, debug=False):
-    global lchar, lArgv
+    global lchar, lArgv, stack, lkeyvalue
     if debug:
-        print "[---- argvs ----]\n", line
-    arr = []
+        print "-"*100
+        print line.strip()
+    
+    stack = []
     lchar = []
     lArgv = []
-    inbracket = False
-    for index, c in enumerate(line):
-        if c in '(' or c in '[':
-            lchar.append(c)
-            arr.append(c)
-        elif c in ')' or c in ']':
-            lchar.append(c)
 
-            if len(arr) !=0:
-                arr.pop()
-            if len(arr) == 0:
-                if index+1 < len(line) and line[index+1] == "." or inbracket:
-                    pass
-                else:
-                    save_char()
-        else:
-            if c in ',':
-                if len(arr) != 0:
-                    lchar.append(c)
-                else:
-                    save_char()
-            elif c in ' ':
-                if len(arr) != 0:
-                    lchar.append(c)
-            elif c in "'":
-                lchar.append(c)
-                if len(arr) == 0:
-                    arr.append(c)
-                elif arr[0] == "'":
-                    save_char()
-            elif c in "\"":
-                if inbracket:
-                    inbracket = False
-                    lchar.append(c)
-                    if len(arr) !=0:
-                        arr.pop()
-                    if len(arr) == 0:
-                        save_char()
-                else:
-                    inbracket = True
-                    lchar.append(c)
-                    arr.append(c)
+    left = ['(', '[', '{']
+    right = [')', ']', '}']
+    for index, c in enumerate(line):
+        if c in ' ' and len(stack) ==0:
+            continue
+        elif c in ',':
+            check_and_save(c)
+            continue
+
+        if c in left:
+            stack.append(c)
+        elif c in right:
+            if len(stack) !=0:
+                stack.pop()
+        elif c in "'":
+            if lkeyvalue["signle_bracket"]:
+                lkeyvalue["signle_bracket"] = False
             else:
-                lchar.append(c)
+                lkeyvalue["signle_bracket"] = True
+        elif c in "\"":
+            if lkeyvalue["bracket"]:
+                lkeyvalue["bracket"] = False
+            else:
+                lkeyvalue["bracket"] = True
+
+        lchar.append(c)
+            
                 
     if lchar !=[]:
         lArgv.append("".join(lchar))
+
     if debug:
-        print "[---- dump ----]"
         for i in lArgv:
-            print i
-        print "[---- dump ----]"
+            print "[-]", i
     return lArgv
 
-def save_char():
-    global lchar, lArgv
-    if lchar !=[]:
-        char = "".join(lchar)
-        lArgv.append(char)
-    lchar = []
+def check_and_save(c):
+    global lchar, lArgv, stack, lkeyvalue
+    if not including():
+        if lchar !=[]:
+            char = "".join(lchar)
+            lArgv.append(char)
+        lchar = []
+        stack = []
+        lkeyvalue["bracket"] = False
+        lkeyvalue["signle_bracket"] = False
+    else:
+        lchar.append(c)
+
+def including():
+    global stack, lkeyvalue
+    ret = False
+    if len(stack) != 0 or lkeyvalue["bracket"] or lkeyvalue["signle_bracket"]:
+        ret = True
+    else:
+        ret = False
+    return ret
 
 def argv_l2s(lArgv, iType=""):
     _lArgv = []

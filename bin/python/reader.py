@@ -17,11 +17,6 @@ class xreader(object):
     def __init__(self, argv):
         if argv != None:
             self.handlerArgv = argv
-            if len(argv) <=1:
-                self.ScriptFolder = os.getcwd()
-            else:
-                self.ScriptFolder = argv[1]
-                self.OutputFolder = argv[2]
 
     def IsTargetExt(self, filename):
         flag = False
@@ -63,12 +58,18 @@ class xreader(object):
         self.handler = handler
 
     def set_handler_data(self):
-        if self.handler != None and self.handlerArgv != None:
+        if len(self.handlerArgv) <=1:
+            self.ScriptFolder = os.getcwd()
+        else:
+            self.ScriptFolder = self.handlerArgv[1]
+            self.OutputFolder = self.handlerArgv[2]
+            
+        if self.handler != None:
             self.handler.set_data(self.handlerArgv)
 
     def find(self, target=""):
         self.set_handler_data()
-        mods = [] 
+        print "~~~~~~", self.ScriptFolder
         for parent, dirnames, filenames in os.walk(self.ScriptFolder):
             for filename in filenames:
                 if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):

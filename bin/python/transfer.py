@@ -153,18 +153,28 @@ def lineBuilder(outblock):
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["getValue({0}, {1})", _obj, _index])
+                            
                         elif _type == "set_Item" or _type == "set_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["setValue({0}, {1})", _obj, _index])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "getexterninstanceindexer", bracket_cb)
 
         if "delegationset" in line:
+            if "EINGUIEnhanceItem" in line:
+                print line
             def bracket_cb(subline, debug=False):
                 mixsub2 = subline
                 if bracketUtils.check_bracket(subline):
                     lmatch = matchUtils.get_match(subline, "delegationset({0})", ["\w*.*"])
+                    if "EINGUIEnhanceItem" in line:
+                        # print ">"*150
+                        # print len(largv)
+                        # for aa in largv:
+                        #     print aa
+                        print lmatch
                     if lmatch != []:
                         largv = utils.dump_argv(lmatch[0])
+
                         if len(largv)>=7:
                             _obj, _nil, _f, _fdes = largv[3:7]
                             _fdes = _fdes.split(";")
@@ -388,7 +398,7 @@ def lineBuilder(outblock):
         if not "System.String.Format" in line:
             ok, line = matchUtils.play_match(line, "#{0}", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[]*"], _debug)
 
-        ok, line = matchUtils.play_match(line, "{0}.Count", "obj_len({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"], _debug)
+        ok, line = matchUtils.play_match(line, "{0}.Count", "obj_len({0})", ["[a-zA-Z0-9_\.:\]\[]*"], _debug)
         ok, line = matchUtils.play_match(line, "{0}.Length", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
         ok, line = matchUtils.play_match(line, "{0}:ToString()", "obj2str({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
         
@@ -424,7 +434,6 @@ def lineBuilder(outblock):
             elif "SetData__System_Object" in line:
                 line = line.replace("SetData__System_Object", "SetData")
                 
-
             regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
             lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
             origin = matchUtils.origin()
@@ -469,8 +478,6 @@ def lineBuilder(outblock):
         line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
         
-        
-
         if ":GetComponent" in line:
             lmatch = matchUtils.get_match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"])
             if len(lmatch) > 0:

@@ -15,9 +15,16 @@ def origin():
 
 def get_match(line, origin, char, isExReCompile="", debug=False):
     global pri_origin_line
-    matchP = origin.replace("(", "\(").replace(")", "\)")
-    matchP = matchP.replace(".", "\.")
-    matchP = matchP.replace("[", "\[").replace("]", "\]")
+    lrep = [
+        "(",
+        ")",
+        ".",
+        "[",
+        "]"
+    ]
+    matchP = origin
+    for rep in lrep:
+        matchP = matchP.replace(rep, "\\" + rep)
     iParam = len(re.compile(r"\{\w\}*").findall(matchP))
     for i in xrange(0, iParam):
         matchP = matchP.replace("{"+str(i)+"}", "({"+str(i)+"})")
@@ -44,19 +51,25 @@ def get_match(line, origin, char, isExReCompile="", debug=False):
 def play_match(line, origin, dest, tuple_origin, debug=False):
     global pri_origin_line
     old_origin = pri_origin_line
-    lmatch = get_match(line, origin, tuple_origin, "", debug)
+    lmatch = get_match(line, origin, tuple_origin)
     cur_origin = pri_origin_line
     pri_origin_line = old_origin
     bFlag = False
     if len(lmatch)>0 and lmatch != ['']:
         if debug:
-            print line.lstrip()
             print "-"*100
-            print "[match_group] " , lmatch
+            print "[match]line:" , line.lstrip()
+            print "[match]group:" , lmatch
         bFlag = True
         line = handle_match_by_origin(line, cur_origin, [dest, tuple(lmatch)], debug)
-        utils.DebugInfo(debug, ["[dest] " + line.strip()])
+        if debug:
+            print "[match]result:", line.strip()
     return bFlag, line
+
+def handle_match_by_origin(line, origin, ldest, debug=False):
+    global pri_origin_line
+    pri_origin_line = origin
+    return handle_match(line, ldest, debug)
 
 def handle_match(line, ldest, debug=False):
     global pri_origin_line
@@ -66,6 +79,8 @@ def handle_match(line, ldest, debug=False):
     tMatch = tuple(ldest[1:])
     if len(tMatch) == 1:
         tMatch = tMatch[0]
+    if debug:
+        print "tMatch ", tMatch
     lmatch = make_one_match(tMatch)
     for tMatch in lmatch:
         if isinstance(tMatch, str):
@@ -75,11 +90,6 @@ def handle_match(line, ldest, debug=False):
         line = line.replace( _form, _to)
         utils.DebugInfo(debug, [_form, "|__", _to, "|__", line.lstrip()])
     return line
-
-def handle_match_by_origin(line, origin, ldest, debug=False):
-    global pri_origin_line
-    pri_origin_line = origin
-    return handle_match(line, ldest, debug)
 
 def make_one_match(*obj):
     lRet = []
