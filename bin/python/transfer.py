@@ -5,6 +5,8 @@ import utils.blockUtils as blockUtils
 import utils.bracketUtils as bracketUtils
 import utils.matchUtils as matchUtils
 import utils.common as common
+import utils.message as message
+
 
 def abs_replace(line, origin, dest, debug=False):
     neworigin = r"\b{0}\b".format(origin)
@@ -19,6 +21,8 @@ def lineBuilder(outblock):
         line = abs_replace(line, "EightGameLogic", "CS.EightGame.Logic")
         line = abs_replace(line, "EightGameComponent", "CS.EightGame.Component")
         line = line.replace("\" + ", "\" .. ")
+        line = line.replace(" + \" ", " .. \" ")
+        
 
         if line.strip() == "end,":
             line = line.replace("end,", "end")
@@ -27,13 +31,12 @@ def lineBuilder(outblock):
             lmatch = matchUtils.get_match(line, "{0} newexternlist({1})", ["\w.*", "\w.*"])
             if lmatch != []:
                 largv = utils.dump_argv(lmatch[1])
-                
                 if len(largv)>1:
                     llst = largv[0].split('.')
-                    ext = '.'.join(llst[:-1])
-                    ext = ext.split("_")[-1]
+                    ext = '.'.join(llst[:-1]).split("_")[-1]
                     name = llst[-1]
                     argv = ext + "." + name
+                    print "argv", argv
                     line = matchUtils.handle_match(line, ["{0} XLuaScriptUtils.new_List_1(typeof({1}))", lmatch[0], argv])
 
         if "newexterndictionary" in line:
@@ -84,6 +87,8 @@ def lineBuilder(outblock):
                 if len(largv)>=2:
                     head = largv[0]
                     line = matchUtils.handle_match(line, ["coroutine.yield({0})", head])
+
+        
 
         if "ForEach" in line:
             lmatch = matchUtils.get_match(line, "{0}:ForEach({1})", ["\w*.*", "\w*.*"])
@@ -159,35 +164,47 @@ def lineBuilder(outblock):
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "getexterninstanceindexer", bracket_cb)
 
-        if "delegationset" in line:
-            if "EINGUIEnhanceItem" in line:
-                print line
+        if "setexterninstanceindexer" in line:
             def bracket_cb(subline, debug=False):
                 mixsub2 = subline
-                if bracketUtils.check_bracket(subline):
-                    lmatch = matchUtils.get_match(subline, "delegationset({0})", ["\w*.*"])
-                    if "EINGUIEnhanceItem" in line:
-                        # print ">"*150
-                        # print len(largv)
-                        # for aa in largv:
-                        #     print aa
-                        print lmatch
-                    if lmatch != []:
-                        largv = utils.dump_argv(lmatch[0])
-
-                        if len(largv)>=7:
-                            _obj, _nil, _f, _fdes = largv[3:7]
-                            _fdes = _fdes.split(";")
-                            if len(_fdes)>1:
-                                _fdes = _fdes[0].split("=")
-                                if len(_fdes)>1:
-                                    _fdes = _fdes[1] + " end" + ")"
-                            if isinstance(_fdes, list):
-                                _fdes = _fdes[0]
-                            _f = _f.replace("\"", "")
-                            mixsub2 = matchUtils.handle_match(subline, ["{0}.{1} = {2}", _obj, _f, _fdes])
+                lmatch = matchUtils.get_match(subline, "setexterninstanceindexer({0})", ["\w*.*"])
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=3:
+                        _obj, _nil, _type, _index, val = largv[0:5]
+                        _type = _type.replace("\"", "").strip()
+                        if _type == "get_Item" or _type == "get_Chars":
+                            mixsub2 = matchUtils.handle_match(subline, ["getValue({0}, {1})", _obj, _index])
+                            
+                        elif _type == "set_Item" or _type == "set_Chars":
+                            mixsub2 = matchUtils.handle_match(subline, ["setValue({0}, {1}, {2})", _obj, _index, val])
                 return mixsub2
-            line = bracketUtils.handle_bracket(line, "delegationset", bracket_cb)
+            line = bracketUtils.handle_bracket(line, "setexterninstanceindexer", bracket_cb)
+
+
+        # if "delegationset" in line or "delegationadd" in line:
+        #     strs = "delegationset" in line and "delegationset" or "delegationadd"
+        #     def bracket_cb(subline, debug=False):
+        #         mixsub2 = subline
+        #         if bracketUtils.check_bracket(subline):
+        #             lmatch = matchUtils.get_match(subline, strs + "({0})", ["\w*.*"])
+        #         else:
+        #             lmatch = matchUtils.get_match(subline, strs + "({0}", ["\w*.*"])
+        #         if lmatch != []:
+        #             largv = utils.dump_argv(lmatch[0])
+        #             if len(largv)>=7:
+        #                 _obj, _nil, _f, function = largv[3:7]
+        #                 function = function.split(";")
+        #                 if len(function)>1:
+        #                     function = function[0].split("=")
+        #                     if len(function)>1:
+        #                         function = function[1] + " end" + ")"
+        #                 if isinstance(function, list):
+        #                     function = function[0]
+        #                 _f = _f.replace("\"", "")
+        #                 mixsub2 = matchUtils.handle_match(subline, ["{0}.{1} = {2}", _obj, _f, function])
+        #         return mixsub2
+        #     line = bracketUtils.handle_bracket(line, strs, bracket_cb)
 
         if "typecast" in line:
             def bracket_cb(subline, debug=False):
@@ -284,13 +301,20 @@ def lineBuilder(outblock):
                 mixsub2 = subline
                 lmatch = matchUtils.get_match(subline, "externdelegationcomparewithnil({0})", ["\w*.*"])
                 if lmatch != []:
+                    if message.model["cur_chunk"] == "_lua_LotteryPagesCom" or message.model["cur_chunk"] == "_lua_LotteryUINode":
+                        print lmatch
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=6:
-                        isevent, isStatic, key, t, inf, k, isequal = largv[0:7]
-                        if "true" in isequal:
-                            mixsub2 = matchUtils.handle_match(subline, ["{0} == {1}", t, k])
+                        isevent, isStatic, key, this, null, field, isequal = largv[0:7]
+                        if field == "nil":
+                            result = this
                         else:
-                            mixsub2 = matchUtils.handle_match(subline, ["{0} ~= {1}", t, k])
+                            field = field.replace("\"", "")
+                            result = this+"."+field
+                        if "true" in isequal:
+                            mixsub2 = matchUtils.handle_match(subline, ["isnil({0})", result])
+                        else:
+                            mixsub2 = matchUtils.handle_match(subline, ["not isnil({0})", result])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "externdelegationcomparewithnil", bracket_cb)
 
@@ -353,25 +377,6 @@ def lineBuilder(outblock):
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "UnityEngine.Random.Range", bracket_cb)
 
-        if "AddChild__UnityEngine_GameObject__UnityEngine_GameObject" in line:
-            def bracket_cb(subline, debug=False):
-                mixsub2 = subline
-                lmatch = matchUtils.get_match(subline, "AddChild__UnityEngine_GameObject__UnityEngine_GameObject({0})", ["\w*.*"])
-                if lmatch != []:
-                    largv = utils.dump_argv(lmatch[0])
-                    if len(largv)>=1:
-                        a, b = largv[1:3]
-                        mixsub2 = matchUtils.handle_match(subline, ["AddChild({0}, {1})", a, b])
-                return mixsub2
-            line = bracketUtils.handle_bracket(line, "AddChild__UnityEngine_GameObject__UnityEngine_GameObject", bracket_cb)
-
-        # if "se_" in line and ":ToString()" in line:
-        #     tmp = line.split(",")
-        #     for item in tmp:
-        #         if "se_" in item and ":ToString()" in item:
-        #             lmatch = matchUtils.get_match(item, "se{0}.SE_{1}:ToString()", ["[a-zA-Z0-9_]*", "[a-zA-Z0-9_]*"])
-        #             if len(lmatch) > 1:
-        
         ltmp = [
             "(1)",
             "(2)",
@@ -433,6 +438,8 @@ def lineBuilder(outblock):
                 line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
             elif "SetData__System_Object" in line:
                 line = line.replace("SetData__System_Object", "SetData")
+            elif "AddChild__UnityEngine_GameObject__UnityEngine_GameObject" in line:
+                line = line.replace("AddChild__UnityEngine_GameObject__UnityEngine_GameObject", "AddChild")
                 
             regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
             lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
@@ -468,13 +475,14 @@ def lineBuilder(outblock):
 
         line = line.replace("Ms +", "Ms ..")
         line = line.replace(", nil, nil, nil);", ");")
-        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "XLuaScriptUtils.GameResources()")
-        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.ServiceCenter)", "XLuaScriptUtils.ServiceCenter()")
-        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameRandom)", "XLuaScriptUtils.GameRandom()")
-        line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.NetworkClient)", "XLuaScriptUtils.NetworkClient()")
+        if "Eight.Framework.EIFrameWork.GetComponent" in line:
+            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameResources)", "XLuaScriptUtils.GameResources()")
+            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.ServiceCenter)", "XLuaScriptUtils.ServiceCenter()")
+            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.GameRandom)", "XLuaScriptUtils.GameRandom()")
+            line = line.replace("Eight.Framework.EIFrameWork.GetComponent(EightGame.Component.NetworkClient)", "XLuaScriptUtils.NetworkClient()")
         
-        line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\ncoroutine.yield(coroutine.coroutine)\nend")
-        
+        sc = utils.space_count(line)
+        line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\n{0}coroutine.yield(coroutine.coroutine)\n{1}end".format(chr(common.S) * (sc + 1), chr(common.S) * (sc)))
         line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
         line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
         

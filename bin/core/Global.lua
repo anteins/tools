@@ -218,7 +218,7 @@ end
     统一处理c#、lua类型的方法
 ]]
 
-function getValue(dict, key)
+function getValue(dict, key, debug)
     if isnil(dict) then
         return nil
     end
@@ -229,12 +229,31 @@ function getValue(dict, key)
         local enum = dict:GetEnumerator()
         local _count = 0
         while enum:MoveNext() do
+            local foreach_obj_type = "list"
+            if enum.Current then
+                if enum.Current.Key and enum.Current.Value then
+                    --dict
+                    foreach_obj_type = "dict"
+                end
+            end
+
+            local targetK = nil
+            if foreach_obj_type == "dict" then
+                targetK = enum.Current.Key
+            else
+                targetK = _count
+            end
+
+            if debug then
+                GameLog("~key", obj2str(key), type(key), "==>", obj2str(targetK), type(targetK))
+            end
+
             if type(key) == "string" then
-                if key == enum.Current.Key then
+                if key == targetK then
                     return enum.Current.Value
                 end
             elseif type(key) == "number" then
-                if key == _count then
+                if key == targetK then
                     return enum.Current
                 end
             end
@@ -333,7 +352,7 @@ function iscstype( t )
     return type(t) == "userdata"
 end
 
-function isnil( obj )
+function isnil( obj, debug)
     if isluatype(obj) then
         return obj == nil
     else

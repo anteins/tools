@@ -6,9 +6,9 @@ import utils.utils as utils
 import utils.blockUtils as blockUtils
 import utils.bracketUtils as bracketUtils
 import utils.matchUtils as matchUtils
-import transfer
-
 import utils.common as common
+import utils.message as message
+import transfer
 
 import ply.lex as lex
 import ply.yacc as yacc
@@ -19,8 +19,6 @@ class Autolua(object):
     pathFilter = []
     ScriptFolder = ""
     OutputFolder = ""
-    lines = []
-    model = {}
     luatag = "_lua_"
     lNoHotfix = [
         "__init__", 
@@ -41,23 +39,11 @@ class Autolua(object):
     def space_count(self, line, debug=False):
         return utils.space_count(line, debug)
 
-    def DebugInfo(self, debug, lines):
-        utils.DebugInfo(debug, lines)
-
     def get_match(self, line, origin, char, isExReCompile="", debug=False):
         return matchUtils.get_match(line, origin, char, isExReCompile, debug)
 
-    def merge_block(self, oldblock, newblock, info):
-        return blockUtils.merge_block(oldblock, newblock, info)
-
-    def dump_argv(self, line, debug=False):
-        return utils.dump_argv(line, debug)
-
-    def get_block(self, lines, start_u, style=[""], debug=False):
-        return blockUtils.get_block(lines, start_u, style, debug)
-
-    def get_mult_block(self, block, start_u, style=[""], debug=False):
-        return blockUtils.get_mult_block(block, start_u, style, debug)
+    def get_block(self, root, start_u, style=[""], debug=False):
+        return blockUtils.get_block(root, start_u, style, debug)
 
     def argv_l2s(self, lArgv, iType=""):
         return utils.argv_l2s(lArgv, iType)
@@ -71,61 +57,155 @@ class Autolua(object):
 
     def get_defs_argv(self, name):
         _argv = []
-        for func in self.model["hotfixs"]:
+        for func in message.model["hotfixs"]:
             if func[0] == name:
                 _argv = func[1]
                 break
         return _argv
 
-    def trans_blocks_style(self, block):
+    def trans_blocks_style(self, outblock):
         _debug = False
-        _match, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
-        _merge = blockUtils.merge_info()
-        while _match != []:
-            _newblock = []
-            _count = 0
-            for line in _block:
-                _count = _count + 1
-                if _count == 1:
+        #--------------------------------- for {0} in getiterator ---------------------------------
+        merge_out = []
+        def _handler1(match, block, block_ln, mergeList):
+            newblock = []
+            for item in block_ln:
+                root_index, index, line = item[0:3]
+                oldline = line
+                _space = self.space_count(line)
+                offsetX = chr(common.S)*(_space)
+                offsetX_1 = chr(common.S)*(_space + 1)
+                if index == 0:
                     lmatch = self.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
-                    _space = self.space_count(line)
-                    line = chr(common.S)*_space + "foreach({0}, function (item)".format(lmatch[1])
+                    line = offsetX + "foreach({0}, function (item)".format(lmatch[1])
                     for argv in lmatch[0].split(','):
                         if argv != "_":
-                            line = line + "\n{0}local {1} = item.current\n".format(chr(common.S)*(_space+1), argv)
-                elif _count == len(_block):
-                    line = chr(common.S)*(_space) + "end)\n"
+                            line = line + "\n{0}local {1} = item.current\n".format(offsetX_1, argv)
+                elif index == len(block)-1:
+                    line = offsetX + "end)\n"
                 else:
                     if line.strip() == "break" or line.strip() == "break;":
-                        _space = self.space_count(line)
-                        line = chr(common.S)*_space + "return \"break\";\n"
-                _newblock.append(line)
+                        line = offsetX + "return \"break\";\n"
 
-            if len(_newblock) == 0:
-                break
-            block = self.merge_block(block, _newblock, _merge)
-            _match, _block = self.get_block(block, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"])
-            _merge = blockUtils.merge_info()
+                if oldline != line:
+                    merge_out.append([root_index, oldline, line])
+   
+        lists = blockUtils.get_mult_block(outblock, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], _handler1)
+        outblock = self.mergeEx(outblock, merge_out)
 
-        _newblock = []
-        regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
-        _match, sub_block = self.get_block(block, ["EventDelegate.Add__{0}", "\w*.*"])
-        merge = blockUtils.merge_info()
-        if _match != []:
-            for i, line in enumerate(sub_block):
-                if i == 0:
-                    _s = self.space_count(line)
-                    _lmatch = self.get_match(_match[0], "{0}({1}", ["[A-Za-z0-9_]*", "\w*.*"])
-                    line = chr(common.S) * _s + "EventDelegate.Add({0}\n".format(_lmatch[1]) 
-                _newblock.append(line)
-        block = self.merge_block(block, _newblock, merge)
-        return block
+        # #--------------------------------- EventDelegate.Add ---------------------------------
+        # merge_out3 = []
+        # def _handler3(root, match, outblock):
+        #     largv = []
+        #     if len(outblock) > 1: 
+        #         no_match_bracket = False
+        #         for index, line in enumerate(outblock):
+                    
+        #             oldline = line
+        #             if index == 0:
+        #                 if bracketUtils.check_bracket(line) == False:
+        #                     no_match_bracket = True
 
-    def trans_lines_style(self, block):
-        return transfer.lineBuilder(block)
+        #             if index == len(outblock) -1:
+        #                 if no_match_bracket:
+        #                     if line.strip() == "end)":
+        #                         line = line.replace("end)", "end))")
 
-    def dump_initlua(self, lModels):
-        initFile = self.OutputFolder + "\\" + "init.lua"
+        #             if oldline != line:
+        #                 
+        #                 merge_out3.append([index, oldline, line])
+
+        # lists = blockUtils.get_mult_block(outblock, ["EventDelegate.Set({0})", "\w*.*"], _handler3)
+        # outblock = self.mergeEx(outblock, merge_out3, True)
+
+        #--------------------------------- delegationset\delegationadd ---------------------------------
+        merge_out2 = []
+        def _handler2(match, block, block_ln, mergeList):
+            largv = []
+            if match != []:
+                largv = utils.dump_argv(match[0])
+                if len(largv)>=7:
+                    _obj, _nil, _f, function = largv[3:7]
+                    function = function.split(";")
+                    if len(function)>1:
+                        function = function[0].split("=")
+                    if isinstance(function, list):
+                        function = function[0]
+                    _f = _f.replace("\"", "")
+
+            for item in block_ln:
+                root_index, index, line = item[0:3]
+                oldline = line
+                offsetX = chr(common.S) * utils.space_count(line)
+                if len(block) == 1:
+                    if len(largv)>=7:
+                        line = offsetX + "{0}.{1} = {2}\n".format( _obj, _f, function)
+                elif len(block) > 1:
+                    if index == 0:
+                        if len(largv)>=7:
+                            line = offsetX + "{0}.{1} = {2}\n".format( _obj, _f, function)
+                        line = line.rstrip() + ")\n"
+                    elif index == len(block) -1:
+                        if line.strip() == "end))":
+                            line = offsetX + "end)\n"
+
+                if oldline != line:
+                    merge_out2.append([root_index, oldline, line])
+
+        lists = blockUtils.get_mult_block(outblock, ["delegationset({0})", "\w*.*"], _handler2)
+        lists = blockUtils.get_mult_block(outblock, ["delegationadd({0})", "\w*.*"], _handler2)
+        outblock = self.mergeEx(outblock, merge_out2, True)
+        return outblock
+
+    def mergeEx(self, rootblock, merge_out, debug=False):
+        start = False
+        start_count = 0
+        outer = None
+        for root_index, line in enumerate(rootblock):
+            for item in merge_out:
+                if root_index == item[0] and line == item[1]:
+                    rootblock[root_index] = rootblock[root_index].replace(item[1], item[2])
+                    break
+            # if start == False and outer == None:
+            #     for key in merge_out:
+            #         if line == key:
+            #             outer = merge_out[key]
+            #             start = True
+            #             start_count = 0
+            #             break
+            # if outer != None and start:
+            #     item = outer["lines"]
+            #     merge = outer["merge"]
+            #     if debug:
+            #         print "\n"
+            #         print line.strip()
+            #     # for ii in item:
+            #     #     if debug:
+            #     #         print "#", ii["new"].strip()
+            #     #     if ii["old"] == line:
+            #     #         before = block[index]
+            #     #         block[index] = block[index].replace(ii["old"], ii["new"])
+            #     #         fail = before == block[index]
+            #     #         start_count = start_count + 1
+            #     #         break
+            #     for ii in ext:
+            #         if block[index] == item[0]:
+            #             block[index] = block[index].replace(item[0], item[1])
+            #             break
+            #     else:
+            #         start = False
+            #         outer = None
+        return rootblock
+
+    def init_info(self, filename, lines):
+        message.model["lines"] = lines
+        message.model["mod"] = filename.replace(".lua", "")
+        message.model["cur_method"] = ""
+        message.model["cur_chunk"] = self.luatag + filename.replace(".lua", "")
+        message.model["methods"] = []
+        message.model["hotfixs"] = []
+
+    def dump_init_block(self, mods):
         lCore = [
             "util = require 'xlua.util'\n",
             "xutf8 = require 'xutf8'\n",
@@ -140,37 +220,30 @@ class Autolua(object):
         ]
 
         lGame = []
-        for mod in lModels:
+        for mod in mods:
             if not mod in "init":
                 lGame.append("require '{0}'\n".format(mod))
 
-        if os.path.exists(self.OutputFolder):
-            with open(initFile, "w") as f_w:
-                f_w.writelines("------------ core require ------------\n")
-                f_w.writelines(lCore)
-                f_w.writelines("------------ game require ------------\n")
-                f_w.writelines(lGame)
-                f_w.writelines("\nMain:__init()\n")
-                
-    def init_info(self, filename):
-        self.model["name"] = filename.replace(".lua", "")
-        self.model["luamod"] = self.luatag + self.model["name"]
-        self.model["methods"] = []
-        self.model["hotfixs"] = []
+        block = []
+        block.append("------------ core require ------------\n")
+        block.append(lCore)
+        block.append("------------ game require ------------\n")
+        block.append(lGame)
+        block.append("\nMain:__init()\n")
+        return block
     
     def dump_head_block(self):
         lblock = []
-        if self.lines == None or len(self.lines) == 0:
-            print "no lines input."
+        if message.model["lines"] == "":
             return lblock
             
-        _match, _block = self.get_block(self.lines, ["require {0}", "\w*.*"])
+        _match, _block = self.get_block(message.model["lines"], ["require {0}", "\w*.*"])
         lblock.append("\n")
 
         lInput = [
             "local this = nil\n",
-            "{0} = BaseCom:New('{0}')\n".format(self.model["luamod"]),
-            "function {0}:Ref(ref)\n".format(self.model["luamod"]),
+            "{0} = BaseCom:New('{0}')\n".format(message.model["cur_chunk"]),
+            "function {0}:Ref(ref)\n".format(message.model["cur_chunk"]),
             "   if ref then\n",
             "       this = ref\n",
             "   end\n",
@@ -181,18 +254,15 @@ class Autolua(object):
         return lblock
 
     def dump_method_block(self, outblock):
-        _match, methods_block = self.get_block(self.lines, ["local instance_methods = {{"])
-        methods = self.get_mult_block(methods_block, ["{0} = function({1})", "\w.*", "\w.*"])
-        for method in methods:
-            _match, _info, _block = method[0:3]
-            if _match != []:
-                offx = 0
-                _name = _match[0].strip()
-                _argv =  _match[1].split(",")
-                if (_name in self.lNoHotfix):
-                    continue
-                self.model["methods"].append([_name, _argv, _info, _block, offx])
+        lmatch, methodsblock = self.get_block(message.model["lines"], ["local instance_methods = {{"])
+        def _handler2(lmatch, block, block_ln, mergeList):
+            if lmatch != []:
+                name = lmatch[0].strip()
+                argv =  lmatch[1].split(",")
+                if not name in self.lNoHotfix:
+                    message.model["methods"].append([name, argv, block])
 
+        lists = blockUtils.get_mult_block(methodsblock, ["{0} = function({1})", "\w.*", "\w.*"], _handler2)
         lban = [
             "this.base", 
             "LogicStatic", 
@@ -201,10 +271,11 @@ class Autolua(object):
             "GetDataByCls",
             "CheckAndAddComponet",
             "GetComponentInChildren",
+            "NGUITools"
         ]
         tmp_block = []
-        for method in self.model["methods"]:
-            methodname, argv, _tmp_, content = method[0:4]
+        for method in message.model["methods"]:
+            methodname, argv, content = method[0:3]
             if content != []:
                 def_block = []
                 largv = []
@@ -219,7 +290,7 @@ class Autolua(object):
                         else:
                             largv = []
                         argvstr = self.argv_l2s(largv, "no_this")
-                        line = "function {0}:{1}({2})\n".format(self.model["luamod"], methodname, argvstr)
+                        line = "function {0}:{1}({2})\n".format(message.model["cur_chunk"], methodname, argvstr)
                     else:
                         for ban in lban:
                             if ban in line:
@@ -235,21 +306,20 @@ class Autolua(object):
 
                     def_block.append(line)
                     # if idnex == 0:
-                    #     log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, self.model["luamod"], methodname, "-"*30)
+                    #     log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, message.model["cur_chunk"], methodname, "-"*30)
                     #     def_block.append(log)
 
                 if not isban:
                     def_block = self.align_block_lines(def_block)
-                    self.model["hotfixs"].append([methodname, largv, isIEnumerator])
+                    message.model["hotfixs"].append([methodname, largv, isIEnumerator])
                     tmp_block.append([methodname, def_block])
 
         for tmp in tmp_block:
             name, _block = tmp[0:2]
-            self.model["cur_method"] = name
-            _block = self.trans_lines_style(_block)
+            message.model["cur_method"] = name
+            _block = transfer.lineBuilder(_block)
             _block = self.trans_blocks_style(_block)
             outblock.append(_block)
-
         return outblock
     
     def align_block_lines(self, block):
@@ -265,10 +335,11 @@ class Autolua(object):
 
     def dump_hotfix_block(self, block):
         hotfix_block = []
-        hotfix_block.append("function {0}:hotfix()\n".format(self.model["luamod"]))
-        if len(self.model["hotfixs"]) > 0:
-            hotfix_block.append(chr(common.S) + "xlua.hotfix({0}, {{\n".format(self.model["name"])),
-            for func in self.model["hotfixs"]:
+        hotfix_block.append("function {0}:hotfix()\n".format(message.model["cur_chunk"]))
+        if len(message.model["hotfixs"]) > 0:
+            headstr = "{0}xlua.hotfix({1}, {{\n".format(chr(common.S), message.model["mod"])
+            hotfix_block.append(headstr),
+            for func in message.model["hotfixs"]:
                 sFName = func[0]
                 sArgv = self.argv_l2s(func[1])
                 sNoArgv = self.argv_l2s(func[1], "no_this")
@@ -278,24 +349,24 @@ class Autolua(object):
                 if isIEnumerator:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.model["luamod"]),
+                        "           {0}:Ref(this)\n".format(message.model["cur_chunk"]),
                         "           return util.cs_generator(function()\n",
-                        "               {0}:{1}({2})\n".format(self.model["luamod"], sFName, sNoArgv),
+                        "               {0}:{1}({2})\n".format(message.model["cur_chunk"], sFName, sNoArgv),
                         "           end)\n",
                         "       end,\n",
                     ]
                 else:
                     lInput = [
                         "       ['{0}'] = function({1})\n".format(sFName, sArgv),
-                        "           {0}:Ref(this)\n".format(self.model["luamod"]),
-                        "           return {0}:{1}({2})\n".format(self.model["luamod"], sFName, sNoArgv),
+                        "           {0}:Ref(this)\n".format(message.model["cur_chunk"]),
+                        "           return {0}:{1}({2})\n".format(message.model["cur_chunk"], sFName, sNoArgv),
                         "       end,\n",
                     ]
                 for line in lInput:
                     hotfix_block.append(line)
             hotfix_block.append("   })\n")
         hotfix_block.append("end\n\n")
-        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(self.model["luamod"]))
+        hotfix_block.append("table.insert(g_tbHotfix, {0})".format(message.model["cur_chunk"]))
         block.append(hotfix_block)
         return block
 
@@ -303,41 +374,24 @@ class Autolua(object):
         lBlock = self.dump_head_block()
         lBlock = self.dump_method_block(lBlock)
         lBlock = self.dump_hotfix_block(lBlock)
+        self.allmods.append(message.model["mod"])
         return lBlock
 
     def set_data(self, argv):
         self.ScriptFolder = argv[1]
         self.OutputFolder = argv[2]
-        print "autolua ScriptFolder", self.ScriptFolder
-        print "autolua OutputFolder", self.OutputFolder
 
-    mods = []
-    def onExcute(self, lines, parent, filename):
-        self.lines = lines
-        self.init_info(filename)
-        self.readfile(parent, filename)
-        self.mods.append(self.model["name"])
-
-    def onFinish(self):
-        self.dump_initlua(self.mods)
-
-        # mods = [] 
-        # for parent, dirnames, filenames in os.walk(self.ScriptFolder):
-        #     for filename in filenames:
-        #         if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
-        #             fullname = os.path.join(parent, filename)
-        #             self.init_info(filename)
-        #             self.Read(parent, filename)
-        #             mods.append(self.model["name"])
-        # self.dump_initlua(mods)
-
-    def readfile(self, parent, filename):
-        print "-"*50, filename, "-"*50
-        with open(self.ScriptFolder + "\\" + filename, "r") as f:
-            self.lines = f.readlines()
-
+    allmods = []
+    def on_excute(self, lines, parent, filename):
+        self.init_info(filename, lines)
         lblock = self.dump_block()
+        self.savefile(filename, lblock)
 
+    def on_finish(self):
+        block = self.dump_init_block(self.allmods)
+        self.savefile("init.lua", block)
+
+    def savefile(self, filename, lblock):
         if not os.path.exists(self.OutputFolder):
             os.makedirs(self.OutputFolder)
 

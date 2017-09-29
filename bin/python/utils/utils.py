@@ -1,5 +1,5 @@
 
-import common
+import common as common
 
 lchar =[]
 lArgv = []

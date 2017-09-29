@@ -69,27 +69,26 @@ class xreader(object):
 
     def find(self, target=""):
         self.set_handler_data()
-        print "~~~~~~", self.ScriptFolder
         for parent, dirnames, filenames in os.walk(self.ScriptFolder):
             for filename in filenames:
                 if (not self.IsPassFile(filename) and not self.IsPassPath(parent)) and self.IsTargetExt(filename) and self.IsTargetFile(filename):
                     fullname = os.path.join(parent, filename)
-                    self.onExcute(parent, filename)
-        self.onFinish()
+                    self.on_excute(parent, filename)
+        self.on_finish()
 
-    def onExcute(self, parent, filename):
-        print "-"*50, filename, "-"*50
+    def on_excute(self, parent, filename):
+        # print "-"*50, filename, "-"*50
         with open(self.ScriptFolder + "\\" + filename, "r") as f:
             self.lines = f.readlines()
 
         if self.handler != None:
-            self.handler.onExcute(self.lines, parent, filename)
+            self.handler.on_excute(self.lines, parent, filename)
         else:
             self.__onExcute(self.lines, parent, filename)
 
-    def onFinish(self):
+    def on_finish(self):
         if self.handler != None:
-            self.handler.onFinish()
+            self.handler.on_finish()
 
     def __onExcute(self, lines, parent, filename):
         pass

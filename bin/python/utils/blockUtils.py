@@ -3,7 +3,9 @@ import os,sys, re
 import matchUtils
 import bracketUtils
 import utils
-import common
+import common as common
+import message as message
+import block as auto_block
 
 cur_merge_info = ""
 
@@ -13,96 +15,143 @@ def merge_info():
 
 def get_block(lines, start_u, style=[""], debug=False):
     global cur_merge_info
-    iStartAlign = 0
-    iEndAlign = 0
+    beginAlign = 0
+    endAlign = 0
     bGetStart = False
     bGetEnd = False
-    isOK = False
-    _rBlock = []
-    _mergeInfo = []
+    isok = False
+    retList = []
+    mergeinfo = {
+        "head":"",
+        "begin":0,
+        "length":0,
+        "root_lnum":[]
+    }
     _start_u = []
     for index, line in enumerate(lines):
         if not bGetStart:
-            tmp = start_u[1:]
             lmatch = matchUtils.get_match(line, start_u[0], start_u[1:])
-            if debug:
-                print "~: ", utils.space_count(line), line, lmatch
             if len(lmatch)>0:
                 if isinstance(lmatch, tuple):
                     _start_u = list(lmatch[0])
                 else:
                     _start_u = lmatch
-                iStartAlign = utils.space_count(line)
+                
+                if debug:
+                    print "> ", line.rstrip()
+
+                beginAlign = utils.space_count(line)
                 bGetStart = True
-                _mergeInfo.append(index)
-                _rBlock.append(line)
+                mergeinfo["head"] = line
+                mergeinfo["begin"] = index
+                mergeinfo["root_lnum"].append(index)
+                retList.append(line)
         elif bGetStart:
-            iEndAlign = utils.space_count(line)
-            isAlignMatch = iEndAlign == iStartAlign
+            endAlign = utils.space_count(line)
+            isAlignMatch = endAlign == beginAlign
             if isAlignMatch:
                 bGetEnd = True
                 if debug:
-                    print "#: ", iEndAlign, line
-                _mergeInfo.append(index)
-                _rBlock.append(line)
+                    print "# ", line.rstrip()
+                if line.strip() == "end," or line.strip() == "end" or line.strip() == "end)," or line.strip() == "end))":
+                    mergeinfo["length"] = mergeinfo["length"] + 1
+                    mergeinfo["root_lnum"].append(index)
+                    retList.append(line)
                 break
             else:
-                iMidAlign = utils.space_count(line)
+                midAlign = utils.space_count(line)
                 if debug:
-                    print "~: ", iMidAlign, line
-                if iMidAlign > iStartAlign:
-                    _mergeInfo.append(index)
-                    _rBlock.append(line)
+                    print "~ ", midAlign, line.rstrip()
+                if midAlign > beginAlign:
+                    mergeinfo["length"] = mergeinfo["length"] + 1
+                    mergeinfo["root_lnum"].append(index)
+                    retList.append(line)
 
+    ret_len = len(retList)
     if not bGetStart:
-        isOK = False
+        isok = False
         if debug:
             print "fck!!!!! no start line."
     elif not bGetEnd:
-        isOK = False
+        isok = False
         if debug:
-            print "fck!!!!! no end line.", len(_rBlock)
-        if len(_rBlock) == 1 and bracketUtils.check_bracket(_rBlock[0]):
-            isOK = True
+            print "fck!!!!! no end line.", ret_len
+        if ret_len == 1 and bracketUtils.check_bracket(retList[0]):
+            isok = True
     else:
-        isOK = True
+        isok = True
         
-    if isOK:
-        if len(_rBlock)>1:
-            if "no_head_and_end" in style:
-                del(_mergeInfo[0])
-                del(_rBlock[0])
-                del(_mergeInfo[len(_mergeInfo)-1])
-                del(_rBlock[len(_rBlock)-1])
-            if "remove_head_and_end" in style:
-                _rBlock[0] = ""
-                _rBlock[len(_rBlock)-1] = ""
+    if isok:
+        pass
+        # if ret_len>1:
+        #     if "no_head_and_end" in style:
+        #         del(mergeInfo[0])
+        #         del(retList[0])
+        #         del(mergeInfo[len(mergeInfo)-1])
+        #         del(retList[ret_len-1])
+        #     if "remove_head_and_end" in style:
+        #         retList[0] = ""
+        #         retList[ret_len-1] = ""
     else:
-        _rBlock = []
-        _mergeInfo = []
+        retList = []
+        # mergeInfo = []
+    match_u = _start_u
+    cur_merge_info = mergeinfo
+    return match_u, retList
 
-    _match_u = _start_u
-    cur_merge_info = _mergeInfo
-    return _match_u, _rBlock
-
-def get_mult_block(block, start_u, style=[""], debug=False):
-    target_block = block
-    lret = []
-    while len(target_block) > 0:
-        _match1, _block = get_block(target_block, start_u, style, debug)
-        merge = cur_merge_info
-        lret.append([_match1, merge, _block])
-        if len(_match1) == [] or len(merge) == 0:
+def get_mult_block(outblock, start_u, handler=None, debug=None):
+    global cur_merge_info
+    #target=>sub=>sub=>...=>[] or not match.
+    bList = []
+    endlinenum = 0
+    root = outblock
+    offsetDeep = 0
+    mergeList = [] #out
+    while len(root) > 0:
+        lmatch, block = get_block(root, start_u)
+        merge = merge_info()
+        if len(block)==0:
             break
-        _start1 = merge[0]
-        _end1 = merge[len(merge)-1]+1
-        target_block = target_block[_end1:]
-    return lret
+        if handler!= None:
+            block2 = []
+            for index, line in enumerate(block):
+                root_index = merge["root_lnum"][index] + offsetDeep
+                block2.append([root_index, index, line])
+            ret = handler(lmatch, block, block2, mergeList)
+            bList.append(block)
 
-def merge_block(oldblock, newblock, info):
-    if info and info != []:
-        count = 0
-        for lnum in info:
-            oldblock[lnum] = newblock[count]
-            count = count + 1
+        if merge["length"] == 0:
+            endlinenum = merge["begin"] + 1
+        else:
+            endlinenum = merge["begin"] + merge["length"]
+
+        offsetDeep = offsetDeep + endlinenum
+
+        root = root[endlinenum:]
+    return bList
+
+def merge_block(oldblock, newblock, mergeinfo):
+    start = False
+    end = False
+    if len(mergeinfo)>1:
+        for index, line in enumerate(oldblock):
+            if index == mergeinfo["begin"]:
+                start = True
+                continue
+            elif index > mergeinfo["length"]:
+                start = False
+                end = True
+            if start and not end:
+                oldblock[index] = newblock[index]
+            elif end:
+                break
     return oldblock
+
+def merge(rootblock, blockList):
+    for obj in blockList:
+        rootblock = merge_block(rootblock, obj.getblock(), obj.getmerge())
+    return rootblock
+
+def find_the_align_line(line):
+    sc = utils.space_count(line)
+    

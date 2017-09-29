@@ -1,10 +1,7 @@
 
-SYMBOLS = {')':'('}
-SYMBOLS_L, SYMBOLS_R = SYMBOLS.values(), SYMBOLS.keys()
-S = 9   #tab
-T = 32  #space
+import common as common
 
-import os,sys, re
+import os, sys, re, math
 
 def find_all_bracket(line, startstr, debug=False):
     lbracket = []
@@ -43,10 +40,10 @@ def one_bracket(line, startswith, debug=False):
     arr = []
     lchar = []
     for c in _head:
-        if c in SYMBOLS_L:
+        if c in common.SYMBOLS_L:
             arr.append(c)
             lchar.append(c)
-        elif c in SYMBOLS_R:
+        elif c in common.SYMBOLS_R:
             lchar.append(c)
             if len(arr)!=0:
                 arr.pop()
@@ -58,9 +55,6 @@ def one_bracket(line, startswith, debug=False):
     return _head
 
 def handle_bracket(line, startstr, handler, debug=False):
-    if debug:
-        print "======== handle ========"
-        print line.lstrip()
     lbracket = find_all_bracket(line, startstr, debug)
     output = merge_bracket(line, lbracket, handler, debug)
     return output
@@ -79,20 +73,23 @@ def merge_bracket(line, lbracket, handler, debug):
     return output
 
 def check_bracket(line, debug=False):
-    arr = []
-    largv = []
-    lchar = []
-    for c in line:
-        if c in SYMBOLS_L:
-            arr.append(c)
-            lchar.append(c)
-        elif c in SYMBOLS_R:
-            lchar.append(c)
-            if len(arr)!=0:
-                arr.pop()
-            if len(arr)==0:
-                largv.append("".join(lchar))
-                break
-        else:
-            lchar.append(c)
-    return len(arr)==0
+    left = []
+    right = []
+
+    def _handle(_line):
+        for c in _line:
+            if c in common.SYMBOLS_L:
+                left.append(c)
+            elif c in common.SYMBOLS_R:
+                right.append(c)
+
+    if isinstance(line, list):
+        for ll in line:
+           _handle(ll)
+    else:
+        _handle(line)
+
+    ret = len(left) == len(right)
+    if debug:
+        print len(left), len(right), ret
+    return ret
