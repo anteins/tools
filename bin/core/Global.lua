@@ -4,8 +4,6 @@
 ]]
 
 g_tbHotfix = {} --热更模块列表
-UNITY_EDITOR = 1
-UNITY_PHONE = 1
 IsLuaMode = true
 
 --使用Lua遍历指定目录，获取所有文件，并使用自定义的函数处理每一个文件
@@ -67,7 +65,7 @@ function IsIOS()
 end
 
 function toast(msg)
-    local param = CS.EightGame.Logic.TipStruct(obj2str(msg) , 0.2)
+    local param = CS.EightGame.Logic.TipStruct(obj_tostring(msg) , 0.2)
     CS.Eight.Framework.EIFrameWork.Instance:DispatchEvent( CS.Eight.Framework.EIEvent( CS.UIMessageType.UI_FLOATING_TIPS, nil, param))
 end
 
@@ -212,14 +210,13 @@ function getStringCount(content)
     end
 end
 
-
 --[[
     CS2Lua.lua
     统一处理c#、lua类型的方法
 ]]
 
-function getValue(dict, key, debug)
-    if isnil(dict) then
+function obj_getValue(dict, key, debug)
+    if obj_isnil(dict) then
         return nil
     end
 
@@ -244,10 +241,6 @@ function getValue(dict, key, debug)
                 targetK = _count
             end
 
-            if debug then
-                GameLog("~key", obj2str(key), type(key), "==>", obj2str(targetK), type(targetK))
-            end
-
             if type(key) == "string" then
                 if key == targetK then
                     return enum.Current.Value
@@ -263,8 +256,8 @@ function getValue(dict, key, debug)
     return nil
 end
 
-function setValue(dict, key, value)
-    if isnil(dict) then
+function obj_setValue(dict, key, value)
+    if obj_isnil(dict) then
         return nil
     end
 
@@ -291,8 +284,8 @@ function setValue(dict, key, value)
     end
 end
 
-function foreach( dict , func)
-    if not isnil(dict) then
+function obj_foreach( dict , func)
+    if not obj_isnil(dict) then
         if isluatype(dict) then
             if type(dict) == "table" then
                 local _index = 1
@@ -318,15 +311,15 @@ function foreach( dict , func)
                 GameLog("GetEnumerator __e__:\n ", __e__)
             end)
             -- local enumerator = dict:GetEnumerator()
-            if not isnil(enumerator) then
+            if not obj_isnil(enumerator) then
                 local _index = 0
-                while not isnil(enumerator) and enumerator:MoveNext() do
+                while not obj_isnil(enumerator) and enumerator:MoveNext() do
                     local item = {}
                     item.index = _index
                     item.current = enumerator.Current or nil
                     item.key = nil
                     item.value = nil 
-                    if not isnil(item.current) then
+                    if not obj_isnil(item.current) then
                         item.key = enumerator.Current.Key
                         item.value = enumerator.Current.Value
                     end
@@ -352,7 +345,7 @@ function iscstype( t )
     return type(t) == "userdata"
 end
 
-function isnil( obj, debug)
+function obj_isnil( obj, debug)
     if isluatype(obj) then
         return obj == nil
     else
@@ -370,9 +363,9 @@ function isnil( obj, debug)
     end
 end
 
-function obj2str( msg )
+function obj_tostring( msg )
     local ret = "nil"
-    if not isnil(msg) then
+    if not obj_isnil(msg) then
         if isluatype(msg) then
             if type(msg) == "boolean" then
                 ret = msg and "true" or "false"
@@ -385,9 +378,6 @@ function obj2str( msg )
             end
         else
             ret = msg:ToString()
-            if ret then
-                ret = tostring(ret)
-            end
         end
     end
     return ret
@@ -395,7 +385,7 @@ end
 
 function obj_len(obj)
     local count = 0
-    if not isnil(obj) then
+    if not obj_isnil(obj) then
         if isluatype(obj) then
             if type(obj) == "string" then
                 count = utf8.len(obj)
@@ -405,10 +395,19 @@ function obj_len(obj)
                 end
             end
         else
-            count = obj.Count
+            GameLog("~", type(obj), type(obj.Count), type(obj.Length))
+            count = obj.Count or obj.Length
         end
     end
     return count
+end
+
+function obj_list( type)
+    return XLuaScriptUtils.new_List_1(typeof(type)) 
+end
+
+function obj_dictionary( key, value )
+    return XLuaScriptUtils.new_Dictionary_2(typeof(key), typeof(value)) 
 end
 
 --[[
@@ -417,8 +416,8 @@ end
 
 --字符串分割函数
 --传入字符串和分隔符，返回分割后的table
-function Split(str, delimiter)
-    if isnil(str) or isnil(delimiter) then
+function obj_split(str, delimiter)
+    if obj_isnil(str) or obj_isnil(delimiter) then
         return nil
     end
     if isluatype(str) then
@@ -440,8 +439,8 @@ function Split(str, delimiter)
     end
 end
 
-function Replace(str, sour, dict)
-    if isnil(str) then
+function obj_replace(str, sour, dict)
+    if obj_isnil(str) then
         return nil
     end
     if isluatype(str) then
@@ -453,26 +452,24 @@ function Replace(str, sour, dict)
     end
 end
 
-function div(a, b)
+function obj_div(a, b)
     return math.ceil(a / b)
 end
 
-function Random_Range(a, b)
-    GameLog("Random_Range ", a, b)
+function obj_randomRange(a, b)
+    GameLog("obj_randomRange ", a, b)
     local value = CS.UnityEngine.Random.Range(a, b )
     return math.ceil(value)
 end
 
-function ToCharArray(str, m, n)
-    GameLog("str:", obj2str(str), obj2str(m), obj2str(n))
+function obj_toCharArray(str, m, n)
     local ret = {}
-    if not isnil(m) and not isnil(n) then
+    if not obj_isnil(m) and not obj_isnil(n) then
         if m == 0 then
             m = m + 1
             n = n + 1
         end 
         str = xutf8.sub(str, m, n)
-        GameLog("change:", obj2str(str), obj2str(m), obj2str(n))
     end
     local slen = obj_len(str)
     
@@ -482,9 +479,9 @@ function ToCharArray(str, m, n)
     return ret
 end
 
-function fromCharCode(Bytes)
+function obj_fromCharCode(Bytes)
     local str = ""
-    if not isnil(Bytes) then
+    if not obj_isnil(Bytes) then
         if type(Bytes) == "number" then
             str = string.char(Bytes)
         else
@@ -496,13 +493,11 @@ function fromCharCode(Bytes)
     return str
 end
 
-function Contains(str, target)
-    if not isnil(str) and not isnil(target) then
+function obj_contains(str, target)
+    if not obj_isnil(str) and not obj_isnil(target) then
         if isluatype(str) then
             if type(str) == "string" then
                 return string.find(str, target) ~= nil
-            else
-                GameLog("Contains: argv[str] == nil.!!")
             end
         else
             return str:Contains(target)
@@ -510,8 +505,8 @@ function Contains(str, target)
     end
 end
 
-function Trim(s)
-    if not isnil(s) then
+function obj_trim(s)
+    if not obj_isnil(s) then
         if isluatype(s) then
             return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
         else
@@ -520,8 +515,8 @@ function Trim(s)
     end
 end
 
-function EndsWith(str, delimiter)
-    if not isnil(s) then
+function obj_endsWith(str, delimiter)
+    if not obj_isnil(s) then
         if isluatype(s) then
             return xstr:endswith(str, delimiter)
         else

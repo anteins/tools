@@ -31,7 +31,7 @@ end
 function Main:testHotfix()
 	for i,v in pairs(g_tbHotfix) do
 		if v then
-			GameLog("hotfix...", obj2str(v.Name))
+			GameLog("hotfix...", obj_tostring(v.Name))
 			v:hotfix()
 		end
 	end

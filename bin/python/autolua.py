@@ -65,7 +65,6 @@ class Autolua(object):
 
     def trans_blocks_style(self, outblock):
         _debug = False
-        #--------------------------------- for {0} in getiterator ---------------------------------
         merge_out = []
         def _handler1(match, block, block_ln, mergeList):
             newblock = []
@@ -77,7 +76,7 @@ class Autolua(object):
                 offsetX_1 = chr(common.S)*(_space + 1)
                 if index == 0:
                     lmatch = self.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
-                    line = offsetX + "foreach({0}, function (item)".format(lmatch[1])
+                    line = offsetX + "obj_foreach({0}, function (item)".format(lmatch[1])
                     for argv in lmatch[0].split(','):
                         if argv != "_":
                             line = line + "\n{0}local {1} = item.current\n".format(offsetX_1, argv)
@@ -93,32 +92,6 @@ class Autolua(object):
         lists = blockUtils.get_mult_block(outblock, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], _handler1)
         outblock = self.mergeEx(outblock, merge_out)
 
-        # #--------------------------------- EventDelegate.Add ---------------------------------
-        # merge_out3 = []
-        # def _handler3(root, match, outblock):
-        #     largv = []
-        #     if len(outblock) > 1: 
-        #         no_match_bracket = False
-        #         for index, line in enumerate(outblock):
-                    
-        #             oldline = line
-        #             if index == 0:
-        #                 if bracketUtils.check_bracket(line) == False:
-        #                     no_match_bracket = True
-
-        #             if index == len(outblock) -1:
-        #                 if no_match_bracket:
-        #                     if line.strip() == "end)":
-        #                         line = line.replace("end)", "end))")
-
-        #             if oldline != line:
-        #                 
-        #                 merge_out3.append([index, oldline, line])
-
-        # lists = blockUtils.get_mult_block(outblock, ["EventDelegate.Set({0})", "\w*.*"], _handler3)
-        # outblock = self.mergeEx(outblock, merge_out3, True)
-
-        #--------------------------------- delegationset\delegationadd ---------------------------------
         merge_out2 = []
         def _handler2(match, block, block_ln, mergeList):
             largv = []
@@ -166,35 +139,6 @@ class Autolua(object):
                 if root_index == item[0] and line == item[1]:
                     rootblock[root_index] = rootblock[root_index].replace(item[1], item[2])
                     break
-            # if start == False and outer == None:
-            #     for key in merge_out:
-            #         if line == key:
-            #             outer = merge_out[key]
-            #             start = True
-            #             start_count = 0
-            #             break
-            # if outer != None and start:
-            #     item = outer["lines"]
-            #     merge = outer["merge"]
-            #     if debug:
-            #         print "\n"
-            #         print line.strip()
-            #     # for ii in item:
-            #     #     if debug:
-            #     #         print "#", ii["new"].strip()
-            #     #     if ii["old"] == line:
-            #     #         before = block[index]
-            #     #         block[index] = block[index].replace(ii["old"], ii["new"])
-            #     #         fail = before == block[index]
-            #     #         start_count = start_count + 1
-            #     #         break
-            #     for ii in ext:
-            #         if block[index] == item[0]:
-            #             block[index] = block[index].replace(item[0], item[1])
-            #             break
-            #     else:
-            #         start = False
-            #         outer = None
         return rootblock
 
     def init_info(self, filename, lines):
@@ -260,9 +204,10 @@ class Autolua(object):
                 name = lmatch[0].strip()
                 argv =  lmatch[1].split(",")
                 if not name in self.lNoHotfix:
-                    message.model["methods"].append([name, argv, block])
+                    message.model["methods"].append([name, argv, block, lmatch])
 
         lists = blockUtils.get_mult_block(methodsblock, ["{0} = function({1})", "\w.*", "\w.*"], _handler2)
+        lists = blockUtils.get_mult_block(methodsblock, ["{0} = wrapenumerable(function({1})", "\w.*", "\w.*"], _handler2)
         lban = [
             "this.base", 
             "LogicStatic", 
@@ -271,11 +216,13 @@ class Autolua(object):
             "GetDataByCls",
             "CheckAndAddComponet",
             "GetComponentInChildren",
-            "NGUITools"
+            "NGUITools", 
+            "System.Collections.Generic.List_", 
+            "PadLeft"
         ]
         tmp_block = []
         for method in message.model["methods"]:
-            methodname, argv, content = method[0:3]
+            method_name, argv, content, lmatch = method[0:4]
             if content != []:
                 def_block = []
                 largv = []
@@ -284,13 +231,11 @@ class Autolua(object):
                 isban = False
                 for idnex, line in enumerate(content):
                     if idnex == 0:
-                        lmatch = self.get_match(line, "{0} = function({1})", [methodname, "\w.*"])
+                        # lmatch = self.get_match(line, "{0} = function({1})", [method_name, "\w.*"])
                         if len(lmatch) > 0:
                             largv =  lmatch[1].split(",")
-                        else:
-                            largv = []
                         argvstr = self.argv_l2s(largv, "no_this")
-                        line = "function {0}:{1}({2})\n".format(message.model["cur_chunk"], methodname, argvstr)
+                        line = "function {0}:{1}({2})\n".format(message.model["cur_chunk"], method_name, argvstr)
                     else:
                         for ban in lban:
                             if ban in line:
@@ -311,17 +256,26 @@ class Autolua(object):
 
                 if not isban:
                     def_block = self.align_block_lines(def_block)
-                    message.model["hotfixs"].append([methodname, largv, isIEnumerator])
-                    tmp_block.append([methodname, def_block])
+                    message.model["hotfixs"].append([method_name, largv, isIEnumerator])
+                    message.model["cur_method"] = method_name
+                    tmp_block.append([method_name, def_block])
 
-        for tmp in tmp_block:
-            name, _block = tmp[0:2]
-            message.model["cur_method"] = name
+        for item in tmp_block:
+            name, _block = item[0:2]
             _block = transfer.lineBuilder(_block)
             _block = self.trans_blocks_style(_block)
             outblock.append(_block)
         return outblock
     
+    def tag(self, chunk, method=""):
+        ret = False
+        if chunk != "":
+            ret = message.model["cur_chunk"] == chunk
+
+        if method != "":
+            ret = message.model["cur_method"] == method
+        return ret
+
     def align_block_lines(self, block):
         offsetX = self.space_count(block[len(block)-1])
         lret = []

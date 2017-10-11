@@ -32,23 +32,25 @@ def lineBuilder(outblock):
             if lmatch != []:
                 largv = utils.dump_argv(lmatch[1])
                 if len(largv)>1:
-                    llst = largv[0].split('.')
-                    ext = '.'.join(llst[:-1]).split("_")[-1]
-                    name = llst[-1]
-                    argv = ext + "." + name
-                    print "argv", argv
-                    line = matchUtils.handle_match(line, ["{0} XLuaScriptUtils.new_List_1(typeof({1}))", lmatch[0], argv])
+                    sname = largv[0]
+                    slist = sname.split("_")
+                    name = slist[1]
+                    print "name", name
+                    line = matchUtils.handle_match(line, ["{0} obj_list({1})", lmatch[0], name])
 
         if "newexterndictionary" in line:
             def bracket_cb(subline, debug=False):
                 mixsub2 = subline
                 lmatch = matchUtils.get_match(subline, "newexterndictionary({0})", ["\w*.*"])
                 if lmatch !=[]:
-                    largv = lmatch[0].split(",")[0].split("_")
+                    largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=2:
-                        key = "typeof({0})".format(largv[1])
-                        value = "typeof({0})".format(largv[2])
-                        mixsub2 = matchUtils.handle_match(subline, ["XLuaScriptUtils.new_Dictionary_2({0}, {1})", key, value])
+                        sname = largv[0]
+                        slist = sname.split("_")
+                        key = slist[1]
+                        value = slist[2]
+                        print "key", key, value
+                        mixsub2 = matchUtils.handle_match(subline, ["obj_dictionary({0}, {1})", key, value])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "newexterndictionary", bracket_cb)
 
@@ -88,8 +90,6 @@ def lineBuilder(outblock):
                     head = largv[0]
                     line = matchUtils.handle_match(line, ["coroutine.yield({0})", head])
 
-        
-
         if "ForEach" in line:
             lmatch = matchUtils.get_match(line, "{0}:ForEach({1})", ["\w*.*", "\w*.*"])
             _origin = matchUtils.origin()
@@ -104,7 +104,7 @@ def lineBuilder(outblock):
                     if len(_func2) > 0:
                         _add = "{0} = {0}.current".format(_func2[0])
                         _func = matchUtils.handle_match_by_origin(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
-                        line = matchUtils.handle_match_by_origin(line, _origin, ["{0}foreach({1}, {2})", chr(common.S)*_offset, _list, _func])
+                        line = matchUtils.handle_match_by_origin(line, _origin, ["{0}obj_foreach({1}, {2})", chr(common.S)*_offset, _list, _func])
         
         if "typeas" in line:
             def bracket_cb(subline, debug=False):
@@ -128,7 +128,7 @@ def lineBuilder(outblock):
                         oper, _left, _right,  = largv[1:4]
                         oper = oper.replace("\"", "")
                         if oper == "/":
-                            mixsub2 = matchUtils.handle_match(subline, ["div({0}, {1}) ", _left, _right])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_div({0}, {1}) ", _left, _right])
                         else:
                             mixsub2 = matchUtils.handle_match(subline, ["{0}{1}{2} ", _left, oper, _right])
                 return mixsub2
@@ -157,10 +157,10 @@ def lineBuilder(outblock):
                         _obj, _nil, _type, _index = largv[0:4]
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["getValue({0}, {1})", _obj, _index])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
                             
                         elif _type == "set_Item" or _type == "set_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["setValue({0}, {1})", _obj, _index])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_setValue({0}, {1})", _obj, _index])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "getexterninstanceindexer", bracket_cb)
 
@@ -174,37 +174,12 @@ def lineBuilder(outblock):
                         _obj, _nil, _type, _index, val = largv[0:5]
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["getValue({0}, {1})", _obj, _index])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
                             
                         elif _type == "set_Item" or _type == "set_Chars":
-                            mixsub2 = matchUtils.handle_match(subline, ["setValue({0}, {1}, {2})", _obj, _index, val])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_setValue({0}, {1}, {2})", _obj, _index, val])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "setexterninstanceindexer", bracket_cb)
-
-
-        # if "delegationset" in line or "delegationadd" in line:
-        #     strs = "delegationset" in line and "delegationset" or "delegationadd"
-        #     def bracket_cb(subline, debug=False):
-        #         mixsub2 = subline
-        #         if bracketUtils.check_bracket(subline):
-        #             lmatch = matchUtils.get_match(subline, strs + "({0})", ["\w*.*"])
-        #         else:
-        #             lmatch = matchUtils.get_match(subline, strs + "({0}", ["\w*.*"])
-        #         if lmatch != []:
-        #             largv = utils.dump_argv(lmatch[0])
-        #             if len(largv)>=7:
-        #                 _obj, _nil, _f, function = largv[3:7]
-        #                 function = function.split(";")
-        #                 if len(function)>1:
-        #                     function = function[0].split("=")
-        #                     if len(function)>1:
-        #                         function = function[1] + " end" + ")"
-        #                 if isinstance(function, list):
-        #                     function = function[0]
-        #                 _f = _f.replace("\"", "")
-        #                 mixsub2 = matchUtils.handle_match(subline, ["{0}.{1} = {2}", _obj, _f, function])
-        #         return mixsub2
-        #     line = bracketUtils.handle_bracket(line, strs, bracket_cb)
 
         if "typecast" in line:
             def bracket_cb(subline, debug=False):
@@ -239,6 +214,7 @@ def lineBuilder(outblock):
                 lmatch = matchUtils.get_match(subline, "invokeforbasicvalue({0})", ["\w*.*"])
                 if lmatch != []:
                     largv = utils.dump_argv(lmatch[0])
+                    print "~~~", largv
                     if len(largv)>=3:
                         _obj, _bool, _type, _f = largv[0:4]
                         _argv = largv[4:]
@@ -247,7 +223,7 @@ def lineBuilder(outblock):
                         if _argv == "":
                             mixsub2 = matchUtils.handle_match(subline, ["{0}({1})", _f, _obj])
                         else:
-                            mixsub2 = matchUtils.handle_match(subline, ["{0}({1}, {2})", _f, _obj, _argv])
+                            mixsub2 = matchUtils.handle_match(subline, ["{0}.{1}({2})", _obj, _f, _argv])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "invokeforbasicvalue", bracket_cb)
 
@@ -263,7 +239,7 @@ def lineBuilder(outblock):
                         if "op_Equality" in op:
                             _left, _right = reat[0:2]
                             if "nil" in _right:
-                                mixsub2 = matchUtils.handle_match(subline, ["isnil({0})", _left, _right])
+                                mixsub2 = matchUtils.handle_match(subline, ["obj_isnil({0})", _left, _right])
                             else:
                                 mixsub2 = matchUtils.handle_match(subline, ["{0} == {1}", _left, _right])
                         elif "op_Addition" in op or "op_UnaryPlus" in op:
@@ -292,7 +268,7 @@ def lineBuilder(outblock):
                             mixsub2 = matchUtils.handle_match(subline, ["{0} >= {1}", _left, _right])
                         elif "op_Implicit" in op or "op_Inequality" in op:
                             _obj= reat[0]
-                            mixsub2 = matchUtils.handle_match(subline, ["not isnil({0})", _obj])
+                            mixsub2 = matchUtils.handle_match(subline, ["not obj_isnil({0})", _obj])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "invokeexternoperator", bracket_cb)
 
@@ -301,8 +277,6 @@ def lineBuilder(outblock):
                 mixsub2 = subline
                 lmatch = matchUtils.get_match(subline, "externdelegationcomparewithnil({0})", ["\w*.*"])
                 if lmatch != []:
-                    if message.model["cur_chunk"] == "_lua_LotteryPagesCom" or message.model["cur_chunk"] == "_lua_LotteryUINode":
-                        print lmatch
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=6:
                         isevent, isStatic, key, this, null, field, isequal = largv[0:7]
@@ -312,11 +286,31 @@ def lineBuilder(outblock):
                             field = field.replace("\"", "")
                             result = this+"."+field
                         if "true" in isequal:
-                            mixsub2 = matchUtils.handle_match(subline, ["isnil({0})", result])
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_isnil({0})", result])
                         else:
-                            mixsub2 = matchUtils.handle_match(subline, ["not isnil({0})", result])
+                            mixsub2 = matchUtils.handle_match(subline, ["not obj_isnil({0})", result])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "externdelegationcomparewithnil", bracket_cb)
+
+        if "delegationcomparewithnil" in line:
+            def bracket_cb(subline, debug=False):
+                mixsub2 = subline
+                lmatch = matchUtils.get_match(subline, "delegationcomparewithnil({0})", ["\w*.*"])
+                if lmatch != []:
+                    largv = utils.dump_argv(lmatch[0])
+                    if len(largv)>=6:
+                        isevent, isStatic, key, this, null, field, isequal = largv[0:7]
+                        if field == "nil":
+                            result = this
+                        else:
+                            field = field.replace("\"", "")
+                            result = this+"."+field
+                        if "true" in isequal:
+                            mixsub2 = matchUtils.handle_match(subline, ["obj_isnil({0})", result])
+                        else:
+                            mixsub2 = matchUtils.handle_match(subline, ["not obj_isnil({0})", result])
+                return mixsub2
+            line = bracketUtils.handle_bracket(line, "delegationcomparewithnil", bracket_cb)
 
         if "System.Text.Encoding.UTF8:GetString" in line:
             def bracket_cb(subline, debug=False):
@@ -373,7 +367,7 @@ def lineBuilder(outblock):
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=1:
                         a, b = largv[0:2]
-                        mixsub2 = matchUtils.handle_match(subline, ["Random_Range({0}, {1})", a, b])
+                        mixsub2 = matchUtils.handle_match(subline, ["obj_randomRange({0}, {1})", a, b])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "UnityEngine.Random.Range", bracket_cb)
 
@@ -398,14 +392,16 @@ def lineBuilder(outblock):
         lmatch  = matchUtils.get_match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"])
         if lmatch != []:
             if len(lmatch)>=2 and lmatch[0] != "" and lmatch[1] != "":
-                ok, line  = matchUtils.play_match(line, "{0}[{1}]", "getValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
+                ok, line  = matchUtils.play_match(line, "{0}[{1}]", "obj_getValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
 
         if not "System.String.Format" in line:
             ok, line = matchUtils.play_match(line, "#{0}", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[]*"], _debug)
 
         ok, line = matchUtils.play_match(line, "{0}.Count", "obj_len({0})", ["[a-zA-Z0-9_\.:\]\[]*"], _debug)
         ok, line = matchUtils.play_match(line, "{0}.Length", "obj_len({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
-        ok, line = matchUtils.play_match(line, "{0}:ToString()", "obj2str({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
+        ok, line = matchUtils.play_match(line, "{0}:ToString()", "obj_tostring({0})", ["[a-zA-Z0-9_.:\]\[\"]*"], _debug)
+        ok, line = matchUtils.play_match(line, "{0}.Split({1})", "obj_split({0}, {1})", ["[a-zA-Z0-9_\.:\]\[]*", "\w*.*"], _debug)
+        ok, line = matchUtils.play_match(line, "delegationwrap({0})", "{0}", ["\w*.*"], _debug)
         
         lmatch  = matchUtils.get_match(line, "if ({0} == {1}) then", ["[A-Za-z0-9_\.\[\]]*", "[0-9]*"])
         if len(lmatch)>1:
@@ -461,10 +457,14 @@ def lineBuilder(outblock):
 
         line = abs_replace(line, "System.Int32.Parse", "tonumber")
         line = abs_replace(line, "Eight.Framework.EIDebuger.Log", "GameLog")
-        line = abs_replace(line, "ToString", "tostring")
+        line = abs_replace(line, "ToString", "obj_tostring")
         line = abs_replace(line, "Ms +", "Ms ..")
+        line = abs_replace(line, "ToCharArray", "obj_toCharArray")
+        line = abs_replace(line, "fromCharCode", "obj_fromCharCode")
+        # line = abs_replace(line, "Contains", "obj_contains")
+        # line = abs_replace(line, "Trim", "obj_trim")
+        # line = abs_replace(line, "EndsWith", "obj_endsWith")
         line = line.replace("+ System.String.Format", ".. System.String.Format")
-        
         line = abs_replace(line, "System.String.Empty", "\"\"")
 
         if line.strip() == "end),":
@@ -484,7 +484,7 @@ def lineBuilder(outblock):
         sc = utils.space_count(line)
         line = line.replace("coroutine.yield(coroutine.coroutine);", "if coroutine.coroutine then\n{0}coroutine.yield(coroutine.coroutine)\n{1}end".format(chr(common.S) * (sc + 1), chr(common.S) * (sc)))
         line = line.replace("LogicStatic.Get", "mylua.LogicStatic:Get")
-        line = line.replace("CS.System.String.IsNullOrEmpty", "isnil")
+        line = line.replace("CS.System.String.IsNullOrEmpty", "obj_isnil")
         
         if ":GetComponent" in line:
             lmatch = matchUtils.get_match(line, ":GetComponent({0})", ["[a-zA-Z0-9_\.:\]\[\"]*"])
