@@ -42,9 +42,6 @@ class Autolua(object):
     def get_match(self, line, origin, char, isExReCompile="", debug=False):
         return matchUtils.get_match(line, origin, char, isExReCompile, debug)
 
-    def get_block(self, root, start_u, style=[""], debug=False):
-        return blockUtils.get_block(root, start_u, style, debug)
-
     def argv_l2s(self, lArgv, iType=""):
         return utils.argv_l2s(lArgv, iType)
 
@@ -148,31 +145,42 @@ class Autolua(object):
         message.model["cur_chunk"] = self.luatag + filename.replace(".lua", "")
         message.model["methods"] = []
         message.model["hotfixs"] = []
+        message.model["changed_method_name"] = {}
 
     def dump_init_block(self, mods):
-        lCore = [
-            "util = require 'xlua.util'\n",
-            "xutf8 = require 'xutf8'\n",
-            "require 'xstr'\n",
-            "require 'JSON'\n",
-            "require 'Global'\n",
-            "require 'cs_config'\n",
-            "require 'XLuaBehaviour'\n",
-            "require 'BaseCom'\n",
-            "require 'Main'\n",
-            "require 'LogicStatic'\n",
+        lCC = [
+            # ["util", "xlua.util"],
+            ["xutf8", "xutf8"],
+            ["", "xstr"],
+            ["", "JSON"],
+            ["", "Global"],
+            ["", "cs_config"],
+            ["", "XLuaBehaviour"],
+            ["", "BaseCom"],
+            ["", "Main"],
+            ["", "LogicStatic"],
         ]
 
-        lGame = []
+        lCoreRequire = []
+        for item in lCC:
+            line = ""
+            if item[0] != "":
+                line = "{0} = require '{1}'\n".format(item[0], item[1])
+            else:
+                line = "require '{0}'\n".format(item[1])
+            lCoreRequire.append(line)
+
+        lGameRequire = []
         for mod in mods:
-            if not mod in "init":
-                lGame.append("require '{0}'\n".format(mod))
+            if "init" == mod:
+                continue
+            lGameRequire.append("require '{0}'\n".format(mod))
 
         block = []
         block.append("------------ core require ------------\n")
-        block.append(lCore)
+        block.append(lCoreRequire)
         block.append("------------ game require ------------\n")
-        block.append(lGame)
+        block.append(lGameRequire)
         block.append("\nMain:__init()\n")
         return block
     
@@ -181,7 +189,7 @@ class Autolua(object):
         if message.model["lines"] == "":
             return lblock
             
-        _match, _block = self.get_block(message.model["lines"], ["require {0}", "\w*.*"])
+        _match, _block = blockUtils.get_one_block(message.model["lines"], ["require {0}", "\w*.*"])
         lblock.append("\n")
 
         lInput = [
@@ -198,7 +206,7 @@ class Autolua(object):
         return lblock
 
     def dump_method_block(self, outblock):
-        lmatch, methodsblock = self.get_block(message.model["lines"], ["local instance_methods = {{"])
+        lmatch, methodsblock = blockUtils.get_one_block(message.model["lines"], ["local instance_methods = {{"])
         def _handler2(lmatch, block, block_ln, mergeList):
             if lmatch != []:
                 name = lmatch[0].strip()
@@ -209,16 +217,16 @@ class Autolua(object):
         lists = blockUtils.get_mult_block(methodsblock, ["{0} = function({1})", "\w.*", "\w.*"], _handler2)
         lists = blockUtils.get_mult_block(methodsblock, ["{0} = wrapenumerable(function({1})", "\w.*", "\w.*"], _handler2)
         lban = [
-            "this.base", 
-            "LogicStatic", 
+            "this.base"
+            # "LogicStatic", 
             "AddMissingComponent", 
             "UITweener.Begin",
             "GetDataByCls",
             "CheckAndAddComponet",
             "GetComponentInChildren",
             "NGUITools", 
-            "System.Collections.Generic.List_", 
-            "PadLeft"
+            "PadLeft",
+            "this.entity"
         ]
         tmp_block = []
         for method in message.model["methods"]:
@@ -253,9 +261,10 @@ class Autolua(object):
                     # if idnex == 0:
                     #     log = "{0}GameLog(\"{1}{2} {3}{4}\")\n".format(chr(common.S), "-"*30, message.model["cur_chunk"], methodname, "-"*30)
                     #     def_block.append(log)
-
+                
                 if not isban:
                     def_block = self.align_block_lines(def_block)
+
                     message.model["hotfixs"].append([method_name, largv, isIEnumerator])
                     message.model["cur_method"] = method_name
                     tmp_block.append([method_name, def_block])
@@ -287,6 +296,12 @@ class Autolua(object):
         lret.append("\n") 
         return lret  
 
+    def check_changed_name(self, name):
+        for key in message.model["changed_method_name"]:
+            if name in key:
+                return message.model["changed_method_name"][key]
+        return name
+
     def dump_hotfix_block(self, block):
         hotfix_block = []
         hotfix_block.append("function {0}:hotfix()\n".format(message.model["cur_chunk"]))
@@ -295,6 +310,7 @@ class Autolua(object):
             hotfix_block.append(headstr),
             for func in message.model["hotfixs"]:
                 sFName = func[0]
+                # sFName = self.check_changed_name(sFName)
                 sArgv = self.argv_l2s(func[1])
                 sNoArgv = self.argv_l2s(func[1], "no_this")
                 isIEnumerator = func[2]

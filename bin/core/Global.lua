@@ -395,7 +395,6 @@ function obj_len(obj)
                 end
             end
         else
-            GameLog("~", type(obj), type(obj.Count), type(obj.Length))
             count = obj.Count or obj.Length
         end
     end
@@ -403,11 +402,11 @@ function obj_len(obj)
 end
 
 function obj_list( type)
-    return XLuaScriptUtils.new_List_1(typeof(type)) 
+    return GameLuaApi.new_list(typeof(type)) 
 end
 
 function obj_dictionary( key, value )
-    return XLuaScriptUtils.new_Dictionary_2(typeof(key), typeof(value)) 
+    return GameLuaApi.new_dictionary(typeof(key), typeof(value)) 
 end
 
 --[[

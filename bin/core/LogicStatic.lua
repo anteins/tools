@@ -1,13 +1,13 @@
 
 --[[
-    封装C# LogicStatic
+    LogicStatic的lua实现
 ]]
 
 mylua = {}
 local LogicStatic = {}
 
 function LogicStatic:Get( data )
-    local net = XLuaScriptUtils.NetworkClient()
+    local net = GameLuaApi.NetworkClient()
     if net and net._server then
         if net._server and net._server.isReady then
             if net._server._dataCache then
@@ -22,11 +22,11 @@ function LogicStatic:Get( data )
 end
 
 function LogicStatic:Get( data , key)
-    local net = XLuaScriptUtils.NetworkClient()
+    local net = GameLuaApi.NetworkClient()
     if net and net._server then
         if net._server and net._server.isReady then
             if net._server._dataCache then
-                if isnil(data) or not net._server:CheckAndLoadData( data ) then
+                if obj_isnil(data) or not net._server:CheckAndLoadData( data ) then
                     return nil
                 end
                 return net._server._dataCache:GetDataByCls(data, key)
@@ -36,7 +36,7 @@ function LogicStatic:Get( data , key)
 end
 
 function LogicStatic:GetList( data , match)
-    local net = XLuaScriptUtils.NetworkClient()
+    local net = GameLuaApi.NetworkClient()
     if net and net._server then
         -- GameLog(">L ", type(net._server), net._server.isReady)
         if net._server and net._server.isReady then

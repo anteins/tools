@@ -5,7 +5,6 @@ import bracketUtils
 import utils
 import common as common
 import message as message
-import block as auto_block
 
 cur_merge_info = ""
 
@@ -13,7 +12,7 @@ def merge_info():
     global cur_merge_info
     return cur_merge_info
 
-def get_block(lines, start_u, style=[""], debug=False):
+def get_one_block(lines, start_u, style=[""], debug=False):
     global cur_merge_info
     beginAlign = 0
     endAlign = 0
@@ -101,14 +100,13 @@ def get_block(lines, start_u, style=[""], debug=False):
 
 def get_mult_block(outblock, start_u, handler=None, debug=None):
     global cur_merge_info
-    #target=>sub=>sub=>...=>[] or not match.
     bList = []
     endlinenum = 0
     root = outblock
     offsetDeep = 0
-    mergeList = [] #out
+    mergeList = []
     while len(root) > 0:
-        lmatch, block = get_block(root, start_u)
+        lmatch, block = get_one_block(root, start_u)
         merge = merge_info()
         if len(block)==0:
             break

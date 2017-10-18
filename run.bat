@@ -8,9 +8,6 @@ set SignedFolder=%OutputFolder%\signed
 set BinFolder=%Root%\bin
 set PythonFolder=%Root%\bin\python
 set Cs2luaFolder=%BinFolder%\cs2lua
-set Csproj=%GameFolder%\Assembly-CSharp.csproj
-set GameTemp=%GameFolder%\Temp
-set GameTools=%GameFolder%\Tools
 set TempFolder=%Root%\tmp
 
 for /f "tokens=1,2* delims==" %%i in ( config.ini ) do (
@@ -25,6 +22,10 @@ echo GameFolder %GameFolder%
 echo PushFolder %PushFolder%
 if %GameFolder%=="" goto _End_PATH
 if %PushFolder%=="" goto _End_PATH
+
+set Csproj=%GameFolder%\Assembly-CSharp.csproj
+set GameTemp=%GameFolder%\Temp
+set GameTools=%GameFolder%\Tools
 
 if "%1" == "-cs2lua" (
 	echo "cs2lua"

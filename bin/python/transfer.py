@@ -22,7 +22,6 @@ def lineBuilder(outblock):
         line = abs_replace(line, "EightGameComponent", "CS.EightGame.Component")
         line = line.replace("\" + ", "\" .. ")
         line = line.replace(" + \" ", " .. \" ")
-        
 
         if line.strip() == "end,":
             line = line.replace("end,", "end")
@@ -35,7 +34,6 @@ def lineBuilder(outblock):
                     sname = largv[0]
                     slist = sname.split("_")
                     name = slist[1]
-                    print "name", name
                     line = matchUtils.handle_match(line, ["{0} obj_list({1})", lmatch[0], name])
 
         if "newexterndictionary" in line:
@@ -49,7 +47,6 @@ def lineBuilder(outblock):
                         slist = sname.split("_")
                         key = slist[1]
                         value = slist[2]
-                        print "key", key, value
                         mixsub2 = matchUtils.handle_match(subline, ["obj_dictionary({0}, {1})", key, value])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "newexterndictionary", bracket_cb)
@@ -158,7 +155,6 @@ def lineBuilder(outblock):
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
-                            
                         elif _type == "set_Item" or _type == "set_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["obj_setValue({0}, {1})", _obj, _index])
                 return mixsub2
@@ -175,7 +171,6 @@ def lineBuilder(outblock):
                         _type = _type.replace("\"", "").strip()
                         if _type == "get_Item" or _type == "get_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
-                            
                         elif _type == "set_Item" or _type == "set_Chars":
                             mixsub2 = matchUtils.handle_match(subline, ["obj_setValue({0}, {1}, {2})", _obj, _index, val])
                 return mixsub2
@@ -189,11 +184,11 @@ def lineBuilder(outblock):
                     largv = utils.dump_argv(lmatch[0])
                     if len(largv)>=2:
                         _obj = largv[0]
-                        _obj = _obj.lstrip("(").rstrip(")")
+                        # _obj = _obj.lstrip("(").rstrip(")")
                         mixsub2 = matchUtils.handle_match(subline, ["{0}", _obj])
                 return mixsub2
             line = bracketUtils.handle_bracket(line, "typecast", bracket_cb)
-        
+            
         if "getforbasicvalue" in line:
             def bracket_cb(subline, debug=False):
                 mixsub2 = subline
@@ -214,7 +209,6 @@ def lineBuilder(outblock):
                 lmatch = matchUtils.get_match(subline, "invokeforbasicvalue({0})", ["\w*.*"])
                 if lmatch != []:
                     largv = utils.dump_argv(lmatch[0])
-                    print "~~~", largv
                     if len(largv)>=3:
                         _obj, _bool, _type, _f = largv[0:4]
                         _argv = largv[4:]
@@ -432,15 +426,31 @@ def lineBuilder(outblock):
             elif "__EventDelegate_Callback" in line:
                 line = line.replace("Set__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Set")
                 line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
+                line = line.replace("Remove__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Remove")
             elif "SetData__System_Object" in line:
                 line = line.replace("SetData__System_Object", "SetData")
             elif "AddChild__UnityEngine_GameObject__UnityEngine_GameObject" in line:
                 line = line.replace("AddChild__UnityEngine_GameObject__UnityEngine_GameObject", "AddChild")
+            elif "__EightGame" in line or "__System" in line:
+                head = line.split("__")[0]
+                tail = line.split("__")[-1]
+                lmatch  = matchUtils.get_match(tail, "{0}{1}", ["[A-Za-z0-9_]*", "\w*.*"])
+                if lmatch != []:
+                    ohead = line.replace(lmatch[-1], "")
+                    # line = head+lmatch[-1] + "\n"
+                    # if "this:" in ohead and "this:" in head:
+                    #     ohead = ohead.replace("this:", "")
+                    #     head = head.replace("this:", "")
+                    #     message.model["changed_method_name"][ohead] = head
+                    #     # print ">"*50
+                    #     # print ohead
+                    #     # print head
                 
             regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
             lmatch  = matchUtils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
             origin = matchUtils.origin()
             if len(lmatch) > 2:
+
                 head = lmatch[0].split(".")
                 argv = lmatch[2].strip().strip("(").strip(")")
                 largv = utils.dump_argv(argv)

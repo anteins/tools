@@ -17,15 +17,14 @@ function Main:__init(ref)
 end
 
 function Main:HotFix()
-	-- if IsLuaMode and IsIOS() then
- --        toast("iOS热更")
- --        initGlobal(file)
- --        self:testHotfix()
- --        self:releaseHotfix()
-	-- end
-    initGlobal(file)
-    self:testHotfix()
-    toast("xlua热更")
+	if IsIOS() then
+        toast("iOS平台")
+        initGlobal(file)
+        self:testHotfix()
+        self:releaseHotfix()
+    else
+    	toast("...........")
+	end
 end
 
 function Main:testHotfix()
@@ -35,22 +34,8 @@ function Main:testHotfix()
 			v:hotfix()
 		end
 	end
-    -- LoginServerCom:hotfix()
 end
 
 function Main:releaseHotfix()
     
 end
-
-function UpdateBeat( ... )
-	-- GameLog("g_UpdateBeat")
-end
-
-function LateUpdateEvent( ... )
-	-- GameLog("g_LateUpdateEvent")
-end
-
-function FixedUpdateEvent( ... )
-	-- GameLog("g_FixedUpdateEvent")
-end
-
