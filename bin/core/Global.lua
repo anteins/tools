@@ -4,6 +4,7 @@
 ]]
 
 g_tbHotfix = {} --热更模块列表
+g_generic_method = {} --c#泛型方法接口
 IsLuaMode = true
 
 --使用Lua遍历指定目录，获取所有文件，并使用自定义的函数处理每一个文件
