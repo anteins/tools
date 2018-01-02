@@ -1,7 +1,4 @@
 
---[[
-    公共方法
-]]
 
 g_tbHotfix = {} --热更模块列表
 g_generic_method = {} --c#泛型方法接口
@@ -469,12 +466,12 @@ function obj_toCharArray(str, m, n)
             m = m + 1
             n = n + 1
         end 
-        str = xutf8.sub(str, m, n)
+        str = EIUtf8.sub(str, m, n)
     end
     local slen = obj_len(str)
     
     for i=1, slen do
-        ret[i] = string.byte(xutf8.sub(str, i, i))
+        ret[i] = string.byte(EIUtf8.sub(str, i, i))
     end
     return ret
 end
@@ -518,7 +515,7 @@ end
 function obj_endsWith(str, delimiter)
     if not obj_isnil(s) then
         if isluatype(s) then
-            return xstr:endswith(str, delimiter)
+            return EIXstr:endswith(str, delimiter)
         else
             return str:EndsWith(delimiter)
         end

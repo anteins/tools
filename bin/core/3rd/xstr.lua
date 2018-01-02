@@ -9,7 +9,7 @@
     帮助: xstr:dir() 列出命名空间下的函数列表。xstr:help("func")查看func的帮助文档
     修改历史: 修改count函数的实现，使用gsub统计个数
 --]]
-xstr = {
+local xstr = {
     func_list = "trim, capitalize, count, startswith, endswith, expendtabs, isalnum, isalpha, isdigit, islower, isupper, join, lower, upper, partition, zfill, ljust, rjust, center, dir, help",
     --[[去除str中的所有空格。成功返回去除空格后的字符串，失败返回nil和失败信息]]
     trim = function (self, str)
@@ -288,3 +288,5 @@ xstr = {
         print(man[fun_name])
     end,
 }
+
+return xstr

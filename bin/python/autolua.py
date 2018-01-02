@@ -155,10 +155,8 @@ class Autolua(object):
             ["", "JSON"],
             ["", "Global"],
             ["", "cs_config"],
-            ["", "XLuaBehaviour"],
             ["", "BaseCom"],
             ["", "Main"],
-            ["", "LogicStatic"],
         ]
 
         lCoreRequire = []

@@ -1426,7 +1426,7 @@ function OBJDEF:new(args)
    return setmetatable(new, OBJDEF)
 end
 
-JSON = OBJDEF:new()
+return OBJDEF:new()
 
 --
 -- Version history:

@@ -54,7 +54,7 @@ function BaseCom:FindRef(root, target, sComponent, fullpath)
 	   		local obj = root.transform:GetChild(i)
 	   		if obj then
 	   			local fullname = fullpath .. "/" .. obj.name
-	   			if xstr:endswith(fullname, target) then
+	   			if EIXstr:endswith(fullname, target) then
 		   			--print("===>get ", fullname, obj.gameObject)
 		   			if sComponent == "gameObject" then
 		   				return obj.gameObject

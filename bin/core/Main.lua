@@ -3,20 +3,12 @@ local file = nil
 
 Main = BaseCom:New("Main")
 
-function Main:Ref(ref)
-	if ref then
-		this = ref
-	end
-	return this
-end
-
 function Main:__init(ref)
-	self:HotFix()
-	--memory()
-	return IsLuaMode
+	self:HotfixMain()
 end
 
-function Main:HotFix()
+function Main:HotfixMain()
+	GameLog("========================= Main:HotfixMain =========================")
 	if IsIOS() then
         toast("iOS平台")
         initGlobal(file)
@@ -30,7 +22,7 @@ end
 function Main:testHotfix()
 	for i,v in pairs(g_tbHotfix) do
 		if v then
-			GameLog("hotfix...", obj_tostring(v.Name))
+			GameLog("====>hotfix: ", obj_tostring(v.Name))
 			v:hotfix()
 		end
 	end

@@ -28,27 +28,22 @@ set GameTemp=%GameFolder%\Temp
 set GameTools=%GameFolder%\Tools
 
 if "%1" == "-cs2lua" (
-	echo "cs2lua"
 	goto _CS2LUA
 )
 
-if "%1" == "-xlua" (
-	echo "xlua"
-	goto _XLUA
+if "%1" == "-init" (
+	goto _INIT
 )
 
 if "%1" == "-sign" (
-	echo "sign"
 	goto _SIGN
 )
 
 if "%1" == "-push" (
-	echo "push"
 	goto _PUSH
 )
 
 if "%1" == "-zip" (
-	echo "zip"
 	goto _ZIP
 )
 
@@ -84,7 +79,7 @@ goto _End
 
 del %ScriptFolder%\cs2lua*
 
-:_XLUA
+:_INIT
 if exist %OutputFolder% (
 	rd /s /q %OutputFolder%
 )
@@ -115,12 +110,12 @@ if not exist %GameTools% (
 if not exist %OutputFolder% (
 	md %OutputFolder%
 )
-if not exist %SignedFolder% (
-	md %SignedFolder%
-)
-python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+rem if not exist %SignedFolder% (
+rem 	md %SignedFolder%
+rem )
+rem python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 
-rd /s /q %PushFolder%\
+rem rd /s /q %PushFolder%\
 if exist %SignedFolder% (
 	echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
 ) else (
