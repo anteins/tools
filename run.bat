@@ -1,38 +1,39 @@
 @echo off  
 
 set Root=%cd%
-set ScriptFolder=%Root%\script
-set OutputFolder=%Root%\output
-set UnsignedFolder=%OutputFolder%\unsigned
-set SignedFolder=%OutputFolder%\signed
-set BinFolder=%Root%\bin
-set PythonFolder=%Root%\bin\python
-set Cs2luaFolder=%BinFolder%\cs2lua
+set Cs2luaFolder=%Root%\cs2lua\bin
+set Cs2luaScriptFolder=%Root%\cs2lua\gen
+set Cs2luaOutputFolder=%Root%\lua_script
+set UnsignedFolder=%Cs2luaOutputFolder%\unsigned
+set SignedFolder=%Cs2luaOutputFolder%\signed
+set LuaScriptFolder=%Root%\priv\script
+set PythonFolder=%Root%\src
 set TempFolder=%Root%\tmp
 
 for /f "tokens=1,2* delims==" %%i in ( config.ini ) do (
 	if "%%i" == "project_path" (
-		set GameFolder="%%j"
+		set GameProjectFolder="%%j"
 	)else if "%%i" == "push_path" (
-		set PushFolder="%%j"
+		set LuaDataFolder="%%j"
 	)
 )
 
-echo GameFolder %GameFolder%
-echo PushFolder %PushFolder%
-if %GameFolder%=="" goto _End_PATH
-if %PushFolder%=="" goto _End_PATH
+echo GameProjectFolder %GameProjectFolder%
+echo LuaDataFolder %LuaDataFolder%
+if %GameProjectFolder%=="" goto _End_PATH
+if %LuaDataFolder%=="" goto _End_PATH
 
-set Csproj=%GameFolder%\Assembly-CSharp.csproj
-set GameTemp=%GameFolder%\Temp
-set GameTools=%GameFolder%\Tools
+set CSprojFile=%GameProjectFolder%\Assembly-CSharp.csproj
+set GameProjectTempFolder=%GameProjectFolder%\Temp
+set GameProjectToolsFolder=%GameProjectFolder%\Tools
+set GameProjectCs2LuaFolder=%GameProjectFolder%\lua
 
 if "%1" == "-cs2lua" (
 	goto _CS2LUA
 )
 
-if "%1" == "-init" (
-	goto _INIT
+if "%1" == "-xlua" (
+	goto _XLUA
 )
 
 if "%1" == "-sign" (
@@ -47,84 +48,89 @@ if "%1" == "-zip" (
 	goto _ZIP
 )
 
-echo "usage: Run.bat [-cs2lua|-xlua|-sign|-push|-zip]"
+echo ""
+echo ""
+echo "usage: 	Run.bat [-cs2lua|-xlua|-sign|-push|-zip]"
 echo "-cs2lua	transform c# script to lua script."
-echo "-xlua 	format lua script to xluaStyle."
-echo "-sign 	signed lua script"
+echo "-xlua 	transform lua script to xlua style."
+echo "-sign 	sign lua script"
 echo "-push 	push lua script to target folder(unity assets folder)"
 echo "-zip 		get a script.zip"
+
 goto _End
 
 :_CS2LUA
-if not exist %GameTemp% (
-	echo md %GameTemp%
-	md %GameTemp%
+if not exist %GameProjectTempFolder% (
+	echo md %GameProjectTempFolder%
+	md %GameProjectTempFolder%
 )
 
-if not exist %GameTemp%\bin (
-	echo md %GameTemp%\bin
-	md %GameTemp%\bin
+if not exist %GameProjectTempFolder%\bin (
+	echo md %GameProjectTempFolder%\bin
+	md %GameProjectTempFolder%\bin
 )
 
-if not exist %GameTemp%\bin\Debug (
-	echo md %GameTemp%\bin\Debug
-	md %GameTemp%\bin\Debug
+if not exist %GameProjectTempFolder%\bin\Debug (
+	echo md %GameProjectTempFolder%\bin\Debug
+	md %GameProjectTempFolder%\bin\Debug
 )
 
-echo A|xcopy %GameFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameTemp%\bin\Debug\
+echo A|xcopy %GameProjectFolder%\Library\ScriptAssemblies\Assembly-CSharp-firstpass.dll %GameProjectTempFolder%\bin\Debug\
 pushd %Cs2luaFolder%
-%Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %Csproj%
+%Cs2luaFolder%\Cs2Lua.exe -ext lua -xlua %CSprojFile%
 popd
+
+echo A|xcopy %GameProjectCs2LuaFolder% %Cs2luaScriptFolder%
+echo Y|del %GameProjectCs2LuaFolder%\*
+echo Y|del %Cs2luaScriptFolder%\cs2lua*
 goto _End
 
-del %ScriptFolder%\cs2lua*
-
-:_INIT
-if exist %OutputFolder% (
-	rd /s /q %OutputFolder%
+:_XLUA
+if exist %Cs2luaOutputFolder% (
+	rd /s /q %Cs2luaOutputFolder%
 )
-md %OutputFolder%
+md %Cs2luaOutputFolder%
 
-%PythonFolder%/main.py %ScriptFolder% %UnsignedFolder%
-echo A|xcopy  /E %BinFolder%\core\* %UnsignedFolder%\core\
+python %PythonFolder%/main.py %Cs2luaScriptFolder% %UnsignedFolder%
+echo A|xcopy  /E %LuaScriptFolder%\core\* %UnsignedFolder%\core\
 goto _End
 
 
 :_SIGN
-if not exist %GameTools% (
+if not exist %GameProjectToolsFolder% (
 	goto _End
 )
-if not exist %OutputFolder% (
-	md %OutputFolder%
+if not exist %Cs2luaOutputFolder% (
+	md %Cs2luaOutputFolder%
 )
 if not exist %SignedFolder% (
 	md %SignedFolder%
 )
-python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+python %PythonFolder%/sign.py %GameProjectToolsFolder%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 goto _End
 
 :_PUSH
-if not exist %GameTools% (
+if not exist %GameProjectToolsFolder% (
 	goto _End
 )
-if not exist %OutputFolder% (
-	md %OutputFolder%
+if not exist %Cs2luaOutputFolder% (
+	md %Cs2luaOutputFolder%
 )
 rem if not exist %SignedFolder% (
 rem 	md %SignedFolder%
 rem )
-rem python %PythonFolder%/sign.py %GameTools%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
+rem python %PythonFolder%/sign.py %GameProjectToolsFolder%\FilesSignature.exe %UnsignedFolder% %SignedFolder%
 
-rem rd /s /q %PushFolder%\
+rem rd /s /q %LuaDataFolder%\
 if exist %SignedFolder% (
-	echo A|xcopy  /E %SignedFolder%\* %PushFolder%\
+	echo A|xcopy  /E %SignedFolder%\* %LuaDataFolder%\
 ) else (
-	echo A|xcopy  /E %UnsignedFolder%\* %PushFolder%\
+	echo A|xcopy  /E %UnsignedFolder%\* %LuaDataFolder%\
 )
 goto _End
 
 :_ZIP
-if exist %OutputFolder% (
+if exist %Cs2luaOutputFolder% (
 	if exist %TempFolder% (
 		rd /s /q %TempFolder%
 	)
@@ -145,3 +151,7 @@ goto _End
 echo "path error."
 
 :_End
+echo ""
+echo ""
+echo finish
+set /p answer=
