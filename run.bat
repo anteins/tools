@@ -28,36 +28,43 @@ set GameProjectTempFolder=%GameProjectFolder%\Temp
 set GameProjectToolsFolder=%GameProjectFolder%\Tools
 set GameProjectCs2LuaFolder=%GameProjectFolder%\lua
 
-if "%1" == "-cs2lua" (
+set Input=%1
+
+:_START_CHOOSE
+echo %Input%
+echo. 
+
+if "%Input%" == "-cs2lua" (
 	goto _CS2LUA
 )
 
-if "%1" == "-xlua" (
+if "%Input%" == "-xlua" (
 	goto _XLUA
 )
 
-if "%1" == "-sign" (
+if "%Input%" == "-sign" (
 	goto _SIGN
 )
 
-if "%1" == "-push" (
+if "%Input%" == "-push" (
 	goto _PUSH
 )
 
-if "%1" == "-zip" (
+if "%Input%" == "-zip" (
 	goto _ZIP
 )
 
-echo ""
-echo ""
-echo "usage: 	Run.bat [-cs2lua|-xlua|-sign|-push|-zip]"
-echo "-cs2lua	transform c# script to lua script."
-echo "-xlua 	transform lua script to xlua style."
-echo "-sign 	sign lua script"
-echo "-push 	push lua script to target folder(unity assets folder)"
-echo "-zip 		get a script.zip"
+echo "usage: 		Run.bat [-cs2lua|-xlua|-sign|-push|-zip]"
+echo. 
+echo "-cs2lua 		transform c# script to lua script."
+echo "-xlua 			transform lua script to xlua style."
+echo "-sign 			sign lua script"
+echo "-push 			push lua script to target folder(unity assets folder)"
+echo "-zip 			get a script.zip"
 
-goto _End
+set /p Input=please input:
+
+goto _START_CHOOSE
 
 :_CS2LUA
 if not exist %GameProjectTempFolder% (
@@ -151,7 +158,6 @@ goto _End
 echo "path error."
 
 :_End
-echo ""
-echo ""
+echo.
 echo finish
 set /p answer=

@@ -1,4 +1,3 @@
-g_tbHotfix = {} --热更模块列表
 g_generic_method = {} --c#泛型方法接口
 IsLuaMode = true
 
@@ -21,28 +20,6 @@ function get_dir_file(dirpath,func)
         if a then
          filename = c
          func(dirname .. "\\" .. filename)
-        end
-    end
-end
-
-function InitGlobal()
-    local count = 0
-    local ClassName = require("core/CsClassName")
-    for i,v in pairs(ClassName) do
-        local _load = load("return " .. v)
-        if type(_load) == "function" then
-            _G[i] = _load()
-            try(function ()
-                xlua.private_accessible(_G[i])
-            end, function ( _e_ )
-                error = _e_
-                local error_str = "error:[" .. i .. "]:" .. _e_ .. "\n", debug.traceback()
-                local file = io.open(CS.PathUtility:GetDataPath() .. "/luaError.log", "w")
-                assert(file)
-                file:write(error_str)
-                GameLog(error_str)
-            end)
-            count = count + 1
         end
     end
 end

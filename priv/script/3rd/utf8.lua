@@ -308,11 +308,4 @@ function utf8.sanitize(s, repl_char)
 	return utf8.replace(s, replace_invalid, repl_char)
 end
 
-
-if not ... then require 'utf8_test' end
-
--- return glue.autoload(utf8, {
--- 	upper = 'utf8_case',
--- 	lower = 'utf8_case',
--- })
 return utf8

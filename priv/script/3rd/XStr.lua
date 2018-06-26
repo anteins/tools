@@ -10,7 +10,7 @@
     修改历史: 修改count函数的实现，使用gsub统计个数
 --]]
 local xstr = {
-    func_list = "trim, capitalize, count, startswith, endswith, expendtabs, isalnum, isalpha, isdigit, islower, isupper, join, lower, upper, partition, zfill, ljust, rjust, center, dir, help",
+    func_list = "trim, capitalize, count, startswith, endswith, expendtabs, isalnum, isalpha, isdigit, islower, isupper, join, lower, upper, partition, zfill, ljust, rjust, center, split, dir, help",
     --[[去除str中的所有空格。成功返回去除空格后的字符串，失败返回nil和失败信息]]
     trim = function (self, str)
         if str == nil then
@@ -255,6 +255,14 @@ local xstr = {
         ln_tmp = n - rn_tmp - len
         return string.rep(ch, rn_tmp) .. str .. string.rep(ch, ln_tmp)
     end,
+
+    split = function (self, str, reps)
+        local resultStrList = {}
+        string.gsub(str,'[^'..reps..']+',function ( w )
+            table.insert(resultStrList,w)
+        end)
+        return resultStrList
+    end,
     ------------------------------------------------------------------------------------------------------------------------------------------
     --[[显示xstr命名空间的所有函数名]]
     dir = function(self)
@@ -284,6 +292,7 @@ local xstr = {
             ["center"] = "xstr:center(str, n, ch) --> string | nil, err_msg\n  按中间对齐方式，使用ch补充str，使其位宽为n。ch默认为空格，n默认为0\n  print(xstr:center(\"hello\", 10, \"*\")) --> **hello***",
             ["dir"] = "xstr:dir()\n  列出xstr命名空间中的函数",
             ["help"] = "xstr:help(\"func\")\n  打印函数func的帮助文档\n  xstr:help(\"dir\") --> \nxstr:dir()\n  列出xstr命名空间中的函数",
+            ["split"] = "xstr:split()\n  新增:分割字符串",
         }
         print(man[fun_name])
     end,
