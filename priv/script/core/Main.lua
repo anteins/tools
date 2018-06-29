@@ -1,9 +1,11 @@
 
+local PlatformUtil = require("core.utils.PlatformUtil")
+local LuaUtil = require("core.utils.LuaUtil")
 Main = class("Main", nil)
 
 function Main:HotfixMain()
 	GameLog("========================= Main:HotfixMain =========================")
-	if IsIOS() then
+	if PlatformUtil:IsIOS() then
         Toast("iOS平台")
         -- self:InitGlobal()
         -- self:TestHotfix()
@@ -34,23 +36,26 @@ function Main:ReleaseHotfix()
 end
 
 function Main:InitGlobal()
-    local count = 0
     local ClassName = require("core/CsClassName")
-    for i,v in pairs(ClassName) do
-        local _load = load("return " .. v)
-        if type(_load) == "function" then
-            _G[i] = _load()
-            try(function ()
-                xlua.private_accessible(_G[i])
-            end, function ( exception )
-                error = exception
-                local error_str = "error:[" .. i .. "]:" .. _e_ .. "\n", debug.traceback()
-                local file = io.open(CS.PathUtility:GetDataPath() .. "/luaError.log", "w")
-                assert(file)
-                file:write(error_str)
-                GameLog(error_str)
-            end)
-            count = count + 1
+    for i, clazz_name in pairs(ClassName) do
+        local clazz_load_f = load("return " .. clazz_name)
+        if type(clazz_load_f) == "function" then
+            _G[i] = clazz_load_f()
+            -- self:private_accessible(clazz_name, _G[i])
         end
     end
+end
+
+function Main:private_accessible( clazz_name, clazz )
+    try(function ()
+        -- print("private_accessible ", clazz_name)
+        xlua.private_accessible(clazz)
+    end, function ( exception )
+        error = exception
+        local error_str = "error:[" .. i .. "]:" .. exception .. "\n", debug.traceback()
+        local file = io.open(CS.PathUtility:GetDataPath() .. "/luaError.log", "w")
+        assert(file)
+        file:write(error_str)
+        GameLog(error_str)
+    end)
 end

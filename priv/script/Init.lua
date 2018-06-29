@@ -1,6 +1,6 @@
 ------------ core require ------------
 require('core.Class')
-xlua_util = require("3rd.xlua.util")
+util = require("3rd.xlua.util")
 require('3rd.utf8')
 require('3rd.xstr')
 require("3rd.json")
