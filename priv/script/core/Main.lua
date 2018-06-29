@@ -17,8 +17,9 @@ end
 
 function Main:TestHotfix()
 	local hotfix_model = require("hotfix.EightGame__Logic__SettingWindowEnterController")
-	if hotfix_model then
-		hotfix_model:hotfix()
+    local exploreviewnode = require("hotfix.eightgame__logic__exploreviewnode")
+	if exploreviewnode then
+		exploreviewnode:hotfix()
 	end
 	-- for i,v in pairs(g_tbHotfix) do
 	-- 	if v then

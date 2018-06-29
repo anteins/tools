@@ -1,5 +1,5 @@
 
-import common as common
+import common
 
 import os, sys, re, math
 

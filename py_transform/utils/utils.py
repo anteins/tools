@@ -1,5 +1,9 @@
-
-import common as common
+# coding=utf-8
+import os
+import re
+import glob
+import shutil
+import common
 
 lchar =[]
 lArgv = []
@@ -9,11 +13,54 @@ lkeyvalue = {
     "bracket":False
 }
 
-def do_cmd(self, cmd, log=False):
-        if log:
+def get_args(args, tag):
+    args_len = len(args)
+    for i, val in enumerate(args):
+        if i % 2 == 0:
+            if args[i] and args[i] == tag:
+                if i+1 < args_len:
+                    return args[i+1]
+
+
+def movefile(srcfile,dstfile):
+    if not os.path.isfile(srcfile):
+        print "%s not exist!"%(srcfile)
+    else:
+        fpath,fname=os.path.split(dstfile)    #分离文件名和路径
+        if not os.path.exists(fpath):
+            os.makedirs(fpath)                #创建路径
+        shutil.move(srcfile,dstfile)          #移动文件
+        print "move %s -> %s"%( srcfile,dstfile)
+
+def copyfile(srcfile,dstfile):
+    if not os.path.isfile(srcfile):
+        print "%s not exist!"%(srcfile)
+    else:
+        fpath,fname=os.path.split(dstfile)    #分离文件名和路径
+        if not os.path.exists(fpath):
+            os.makedirs(fpath)                #创建路径
+        shutil.copyfile(srcfile,dstfile)      #复制文件
+        print "copy %s -> %s"%( srcfile,dstfile)
+
+def files(curr_dir = '.', ext = '*.exe'):
+    """当前目录下的文件"""
+    for i in glob.glob(os.path.join(curr_dir, ext)):
+        yield i
+        
+def remove_files(rootdir, ext, show = False):
+    """删除rootdir目录下的符合的文件"""
+    for i in files(rootdir, ext):
+        if show:
+            print i
+        os.remove(i)
+
+def do_cmd(cmd, islog=False):
+        # cmd = cmd.replace("/", "\\")
+        if islog:
             print cmd
         else:
-            cmd = cmd + " 1>nul"
+            print cmd
+
         os.system(cmd)
         
 def debug_info(debug, lines):
@@ -37,6 +84,7 @@ def dump_argv(line, debug=False):
     right = [')', ']', '}']
     for index, c in enumerate(line):
         if c in ' ' and len(stack) ==0:
+            lchar.append(c)
             continue
         elif c in ',':
             check_and_save(c)
@@ -59,14 +107,17 @@ def dump_argv(line, debug=False):
                 lkeyvalue["bracket"] = True
 
         lchar.append(c)
-            
-                
+
     if lchar !=[]:
-        lArgv.append("".join(lchar))
+        val = "".join(lchar)
+        lArgv.append(val)
+
+    for i, val in enumerate(lArgv):
+        lArgv[i] = lArgv[i].strip()
 
     if debug:
         for i in lArgv:
-            print "[-]", i
+            print "[-]", i.strip()
     return lArgv
 
 def check_and_save(c):
@@ -134,3 +185,13 @@ def space_count(line, debug=False):
         elif _start_match == True and _end_match == True:
             break
     return _hc
+
+def offsetx(oldline, line):
+    offset_x = chr(common.S) * space_count(oldline)
+    line = offset_x + line
+    return line
+
+def abs_replace(line, origin, dest, debug=False):
+    neworigin = r"\b{0}\b".format(origin)
+    newline = re.sub(neworigin, dest, line)
+    return newline

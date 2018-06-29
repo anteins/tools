@@ -4,14 +4,14 @@ import os,sys, re
 import shutil
 
 class xreader(object):
-    ext = []
+    target_file = []
+    target_file_ext = []
     pass_filter = []
     path_filter = []
     script_path = ""
     output_path = ""
     handler=None
     handler_argv=None
-    targets = []
 
     def __init__(self, argv):
         if argv != None:
@@ -19,7 +19,7 @@ class xreader(object):
 
     def is_target_file_ext(self, filename):
         flag = False
-        for target in self.ext:
+        for target in self.target_file_ext:
             if target in filename:
                 flag = True
                 break
@@ -27,10 +27,9 @@ class xreader(object):
 
     def is_target_file(self, filename):
         flag = False
-        if self.targets == []:
+        if self.target_file == []:
             return True
-        else:
-            return filename in target
+        return filename in self.target_file
 
     def is_ban_file(self, filename):
         flag = False
@@ -48,8 +47,9 @@ class xreader(object):
                 break
         return flag
 
-    def set_filter(self, target, filte, path_filte):
-        self.ext = target
+    def set_filter(self, target_file, target_ext, filte, path_filte):
+        self.target_file = target_file
+        self.target_file_ext = target_ext
         self.pass_filter = filte
         self.path_filter = path_filte
 
@@ -79,14 +79,16 @@ class xreader(object):
         self.all_finish()
 
     def handle_file(self, filename):
-        with open(self.script_path + "\\" + filename, "r") as f:
+        with open(self.script_path + filename, "r") as f:
             lines = f.readlines()
 
         self.handler.handle_data(lines, filename)
 
     def all_finish(self):
-        block = self.handler.get_init_lua_block()
-        self.savefile(self.output_path + "\\" + "Init.lua", block)
+        pass
+        # 不需要生成Init.lua
+        # block = self.handler.get_init_lua_block()
+        # self.savefile(self.output_path + "Init.lua", block)
 
     def savefile(self, filepath, lblock):
         with open(filepath, "w") as f_w:
@@ -94,15 +96,4 @@ class xreader(object):
                 for line in block:
                     f_w.write(line)
 
-
-if __name__=="__main__":
-    xrer = xreader(sys.argv)
-    xrer.set_filter(
-        [".lua"], 
-        #ignore file
-        ["manifest.lua", "tmp.lua", "Init.lua"],
-        #ignore path
-        ["core"]
-    )
-    xrer.start()
 

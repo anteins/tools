@@ -9,9 +9,12 @@ require("3rd.event")
 require("3rd.ltn12")
 require("3rd.unity.Mathf")
 require("3rd.unity.Vector3")
+require("core.Logger")
 require("core.Global")
 require("core.CsClassName")
 require("core.utils.LuaUtil")
+require("core.utils.TableUtil")
+require("core.utils.StringUtil")
 require("core.Main")
 ------------ game require ------------
 
