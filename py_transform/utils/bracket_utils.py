@@ -1,6 +1,7 @@
 # coding=utf-8
 import common
 import os, sys, re, math
+from py_transform.utils import utils
 
 def find_all_bracket(line, startstr, debug=False):
     lbracket = []
@@ -83,8 +84,10 @@ def handle_bracket2(line, handler):
         index = index + 1
         val = stack.pop()
         parent = stack.pop()
-        parent, val = handler(index, parent, val)
-        new_str = parent.format(val)
+        parent2, val = handler(index, parent, val)
+        parent2 = utils.align(parent, parent2)
+        parent2 = parent2 + "\n"
+        new_str = parent2.format(val)
         if len(stack) <= 0:
             end_str = new_str
             break
@@ -101,7 +104,7 @@ def _findall(str, stack):
         stack.append(parent)
         _findall(find_list[0], stack)
     else:
-        print "find nothing."
+        # print "find nothing."
         stack.append(str)
 
 # -*- coding: utf8 -*-

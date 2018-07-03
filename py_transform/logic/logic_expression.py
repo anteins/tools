@@ -47,25 +47,38 @@ def handle(line, _debug = False):
         line = bracket_utils.handle_bracket(line, "newobject", bracket_cb)
 
     if "condexp" in line:
-        def bracket_cb(index, parent, subline):
-            if index == 1:
-                lmatch = subline.split(",")
-                if len(lmatch)>=5:
-                    head, _1, mid, _2, reat = lmatch[0:5]
-                    subline = "{0} and {1} or {2}".format(head, mid, reat)
-                    # print subline
-                    # largv = utils.dump_argv(lmatch[0])
-                    # if len(largv)>=5:
-                    #     head, _1, mid, _2 = largv[0:4]
-                    #     reat = " ".join(largv[4:])
-                    #     ok, reat = match_utils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
-                    #     mixsub2 = match_utils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", head, mid, reat])
-                    sc = utils.space_count(parent)
-                    new_parent = "return {0};\n"
-                    new_parent = utils.align(parent, new_parent)
-                    return new_parent, subline
-            return parent, subline
-        line = bracket_utils.handle_bracket2(line, bracket_cb)
+        # def bracket_cb(index, parent, subline):
+        #     if "condexp(" in parent:
+        #         mixsub2 = subline
+        #         full_str = parent.format(subline)
+        #         lmatch = match_utils.get_match(full_str, "condexp({0})", ["\w*.*"])
+        #         _origin = match_utils.origin()
+        #         if lmatch !=[]:
+        #             largv = utils.dump_argv(lmatch[0])
+        #             if len(largv)>=5:
+        #                 head, _1, mid, _2 = largv[0:4]
+        #                 reat = " ".join(largv[4:])
+        #                 print "head ", head
+        #                 print "mid ", mid
+        #                 print "reat ", reat
+        #                 ok, reat = match_utils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
+        #                 mixsub2 = match_utils.handle_match_by_origin(full_str, _origin, ["{0} and {1} or {2}", head, mid, reat])
+        #         return parent, mixsub2
+        #     return parent, subline
+        def bracket_cb(subline, debug=False):
+            mixsub2 = subline
+            lmatch = match_utils.get_match(subline, "condexp({0})", ["\w*.*"])
+            _origin = match_utils.origin()
+            if lmatch !=[]:
+                largv = utils.dump_argv(lmatch[0])
+                if len(largv)>=5:
+                    head, _1, mid, _2 = largv[0:4]
+                    reat = " ".join(largv[4:])
+                    ok, reat = match_utils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
+                    mixsub2 = match_utils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", head, mid, reat])
+            return mixsub2
+
+        line = bracket_utils.handle_bracket(line, "condexp", bracket_cb)
 
     if "wrapyield" in line:
         lmatch = match_utils.get_match(line, "wrapyield({0})", ["\w*.*"])
