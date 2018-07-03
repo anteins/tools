@@ -5,17 +5,40 @@
 local LuaUtil = {}
 
 local LogicStatic = {}
-function LogicStatic.Get( cs_class, id )
-	if type(id) == "number" then
-		return CS.LuaUtil.LogicStatic_Get(typeof(cs_class), id)
-	elseif type(id) == "function" then
-		local d2 = util.createdelegate(CS.System.Func, nil, CS.TestClass, 'SFoo', {typeof(CS.System.Boolean)})
-		return CS.LuaUtil.LogicStatic_Get(typeof(cs_class), func)
+function LogicStatic.Get( cs_class, args )
+	local tt = cs_class
+	if type(cs_class) ~= "userdata" then
+		--is not yield typeof
+		tt = typeof(cs_class)
+	end
+
+	if type(args) == "number" then
+		local id = args
+		return CS.LuaUtil.LogicStatic_Get(tt, id)
+	elseif type(iargsd) == "function" then
+		local func = args
+		return CS.LuaUtil.LogicStatic_Get(tt, func)
+	else
+		return CS.LuaUtil.LogicStatic_Get(tt)
 	end
 end
 
-function LogicStatic.GetList( cs_class, id )
-	return CS.LuaUtil.LogicStatic_GetList(typeof(cs_class), id)
+function LogicStatic.GetList( cs_class, args)
+	local tt = cs_class
+	if type(cs_class) ~= "userdata" then
+		--is not yield typeof
+		tt = typeof(cs_class)
+	end
+
+	if type(args) == "number" then
+		local id = args
+		return CS.LuaUtil.LogicStatic_GetList(tt, id)
+	elseif type(iargsd) == "function" then
+		local func = args
+		return CS.LuaUtil.LogicStatic_GetList(tt, func)
+	else
+		return CS.LuaUtil.LogicStatic_GetList(tt)
+	end
 end
 
 local EIFrameWork = {}

@@ -44,6 +44,8 @@ key_value = {
     "obj_contains" : "c_contains",
     "obj_trim" : "c_trim",
     "obj_split" : "c_split",
+    "obj_foreach" : "c_foreach",
+    "obj_replace":"c_replace",
     # "CS.System.String.Concat" : "StringUtil.Concat",
     "EightFramework" : "CS.Eight.Framework",
     "EightGameComponent" : "CS.EightGame.Component",
@@ -63,4 +65,8 @@ key_value = {
     "GetDataByCls__CS_System_Predicate_T" : "GetDataByCls",
     "Get__CS_System_Int32" : "Get",
     "Get__CS_System_Predicate_T" : "Get",
+    "Add__CS_System_Collections_Generic_List_T__EventDelegate_Callback":"Add",
+    "LuaUtil.EIFrameWork.GetComponent(CS.EightGame.Component.NetworkClient):GetDataByCls":"LuaUtil.GetDataByCls",
+    "StartCoroutine__CS_System_Collections_IEnumerator":"StartCoroutine",
+    "SubString":"c_substring",
 }

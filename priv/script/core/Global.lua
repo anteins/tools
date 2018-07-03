@@ -107,7 +107,7 @@ function c_set(dict, key, value)
     end
 end
 
-function obj_foreach( dict , func)
+function c_foreach( dict , func)
     if not c_isnil(dict) then
         if isluatype(dict) then
             if type(dict) == "table" then
@@ -253,7 +253,19 @@ function c_split(str, delimiter)
     end
 end
 
-function obj_replace(str, sour, dict)
+function c_substring( str, start_index, end_index )
+    if start_index >= 0 then
+        if end_index == nil then
+            return string.sub(str, start_index)
+        else
+            return string.sub(str, start_index, end_index)
+        end
+    end
+
+    return nil
+end
+
+function c_replace(str, sour, dict)
     if c_isnil(str) then
         return nil
     end
