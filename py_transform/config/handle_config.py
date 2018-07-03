@@ -15,6 +15,8 @@ ban_methods = [
     "Start", 
     "OnUpdate",
     "Update",
+    "get",
+    "set",
 ]
 
 ban_lines = [
@@ -28,25 +30,30 @@ ban_lines = [
     "this.entity"
 ]
 
-key_value = {
+static_name = {
     # api
-    "obj_list" : "LuaUtil.new_List",
-    "obj_dict" : "LuaUtil.new_Dictionary",
-    "obj_array" : "LuaUtil.new_Array",
-    "obj_getValue" : "c_get",
-    "obj_setValue" : "c_set",
-    "obj_len" : "c_len",
-    "obj_isnil" : "c_isnil",
-    "obj_tostring" : "c_tostring",
-    "obj_div" : "c_div",
-    "obj_fromCharCode" : "c_fromCharCode",
-    "obj_toCharArray" : "c_toCharArray",
-    "obj_contains" : "c_contains",
-    "obj_trim" : "c_trim",
-    "obj_split" : "c_split",
-    "obj_foreach" : "c_foreach",
-    "obj_replace":"c_replace",
-    # "CS.System.String.Concat" : "StringUtil.Concat",
+    "System.Int32.Parse" : "tonumber",
+    "Eight.Framework.EIDebuger.Log" : "GameLog",
+    "ToCharArray" : "c_toCharArray",
+    "fromCharCode" : "c_fromCharCode",
+    "Contains" : "c_contains",
+    "Trim" : "c_trim",
+    "EndsWith" : "c_endsWith",
+    "System.String.Empty" : "\"\"",
+    "Ms +" : "Ms ..",
+    "+ System.String.Format" : ".. System.String.Format",
+
+    "c_list" : "LuaUtil.new_List",
+    "c_dict" : "LuaUtil.new_Dictionary",
+    "c_array" : "LuaUtil.new_Array",
+    "CS.System.String.IsNullOrEmpty" : "c_isnil",
+    "CS.System.Convert.ToInt32":"tonumber",
+    # LuaUtil
+    "LogicStatic.GetList" : "LuaUtil.LogicStatic.GetList",
+    "LogicStatic.Get" : "LuaUtil.LogicStatic.Get",
+    "Eight.Framework.EIFrameWork.GetComponent" : "LuaUtil.EIFrameWork.GetComponent",
+    "LuaUtil.LuaUtil." : "LuaUtil.", 
+    # CS
     "EightFramework" : "CS.Eight.Framework",
     "EightGameComponent" : "CS.EightGame.Component",
     "EightGameLogic" : "CS.EightGame.Logic",
@@ -57,16 +64,9 @@ key_value = {
     "MiniJSON" : "CS.MiniJSON",
     "UIEventListener" : "CS.UIEventListener",
     "System" : "CS.System",
+    "CS.Eight.Framework.EIDebuger.LogError" : "LogError",
     # NGUI
     "UIEventListener" : "CS.UIEventListener",
     # others
     "M.i18n" : "CS.M.i18n",
-    "BindComponent__EIEntityBehaviour" : "BindComponent",
-    "GetDataByCls__CS_System_Predicate_T" : "GetDataByCls",
-    "Get__CS_System_Int32" : "Get",
-    "Get__CS_System_Predicate_T" : "Get",
-    "Add__CS_System_Collections_Generic_List_T__EventDelegate_Callback":"Add",
-    "LuaUtil.EIFrameWork.GetComponent(CS.EightGame.Component.NetworkClient):GetDataByCls":"LuaUtil.GetDataByCls",
-    "StartCoroutine__CS_System_Collections_IEnumerator":"StartCoroutine",
-    "SubString":"c_substring",
 }

@@ -39,7 +39,7 @@ class AutoLuaHandler(object):
         #         offsetX_1 = chr(common.S)*(_space + 1)
         #         if index == 0:
         #             lmatch = match_utils.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
-        #             line = offsetX + "obj_foreach({0}, function (item)".format(lmatch[1])
+        #             line = offsetX + "c_foreach({0}, function (item)".format(lmatch[1])
         #             for argv in lmatch[0].split(','):
         #                 if argv != "_":
         #                     line = line + "\n{0}local {1} = item.current\n".format(offsetX_1, argv)
@@ -83,7 +83,7 @@ class AutoLuaHandler(object):
                         if line.strip() == "end))":
                             line = "end)\n"
 
-                line = utils.offsetx(oldline, line)
+                line = utils.align(oldline, line)
                 if oldline != line:
                     merge_out2.append([linenum, oldline, line])
 
@@ -271,6 +271,7 @@ class AutoLuaHandler(object):
     def dump_hotfix_block(self, block):
         hotfix_block = []
         hotfix_block.append("function {0}:hotfix()\n".format(message.model["lua_mod_name"]))
+        hotfix_block.append("xlua.private_accessible({0})\n".format(message.model["lua_mod_name"]))
         if len(message.model["hotfixs"]) > 0:
             headstr = "{0}xlua.hotfix({1}, {{\n".format(chr(common.S), message.model["lua_file_name"])
             hotfix_block.append(headstr),
@@ -322,15 +323,30 @@ class AutoLuaHandler(object):
         for apply in handle_config.apply_files:
             if apply in filename:
                 is_apply_file = True
+                break
+
+        # def bracket_cb(index, parent, string):
+        #     print "Get: ", index, parent, "--->", string
+        #     if index == 0:
+        #         string = "hello world.!!!!!"
+        #         return "{0}", string
+        #     return parent, string
+
+        # # str = "this.mAnimator:Update(condexp( this.mLastDirection == -1 , false, function() return - delta; end, false, nil));"
+        # line = "local playerseradata; playerseradata = LogicStatic.Get(isnil(tonumber(typeof(CS.EightGame.Data.Server.PlayerSerData))), nil);"
+        # line = bracket_utils.handle_bracket2(line, bracket_cb)
+        # print "end: ", line
 
         if is_apply_file:
             print "-"*50, filename, "-"*50
             self.init_info(filename, lines)
             lblock = self.dump_block()
-
-            if not os.path.exists(self.output_path + "\\hotfix\\"):
-                os.makedirs(self.output_path + "\\hotfix\\")
-            filepath = self.output_path + "\\hotfix\\" + filename
+            hotfix_path = "\\hotfix\\"
+            if not os.path.exists(self.output_path + hotfix_path):
+                os.makedirs(self.output_path + hotfix_path)
+            filepath = self.output_path + hotfix_path + filename
             self.master.savefile(filepath, lblock)
 
-   
+
+
+

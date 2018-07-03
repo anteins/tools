@@ -29,7 +29,10 @@ GameProjectToolsFolder = GameProjectFolder + "/Tools/"
 def cs2lua_execute(parent, target):
 	global Cs2luaFolder, Cs2luaScriptFolder
 	if os.path.isfile(target):
-		utils.do_cmd("{0}Cs2Lua.exe -ext lua -xlua {1}".format(Cs2luaFolder, target))
+		# dll = "E:/Project/android3_platfrom/client/Assets/Plugins/Network/Lib/protobufData.dll"
+		dll = "E:/Project/android3_platfrom/client/Library/ScriptAssemblies/Assembly-CSharp.dll"
+
+		utils.do_cmd("{0}Cs2Lua.exe -ext lua -outputresult -refbypath {1} -xlua {2}".format(Cs2luaFolder, dll, target))
 		_source = parent + "/lua"
 		_source = _source.replace("/", "\\")
 		_Cs2luaScriptFolder = Cs2luaScriptFolder.replace("/", "\\")

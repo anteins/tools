@@ -1,6 +1,5 @@
-
+# coding=utf-8
 import common
-
 import os, sys, re, math
 
 def find_all_bracket(line, startstr, debug=False):
@@ -72,24 +71,57 @@ def merge_bracket(line, lbracket, handler, debug):
             output = output.replace(regx, _reps)
     return output
 
-def check_bracket(line, debug=False):
-    left = []
-    right = []
+def handle_bracket2(line, handler):
+    # 把所有括号内容匹配进栈里面
+    stack = []
+    new_str = _findall(line, stack)
 
-    def _handle(_line):
-        for c in _line:
-            if c in common.SYMBOLS_L:
-                left.append(c)
-            elif c in common.SYMBOLS_R:
-                right.append(c)
+    # 出栈，合并所有括号内容，文本内容由handler更新
+    index = -1
+    end_str = ""
+    while len(stack) > 1:
+        index = index + 1
+        val = stack.pop()
+        parent = stack.pop()
+        parent, val = handler(index, parent, val)
+        new_str = parent.format(val)
+        if len(stack) <= 0:
+            end_str = new_str
+            break
+        else:
+            stack.append(new_str)
 
-    if isinstance(line, list):
-        for ll in line:
-           _handle(ll)
+    return end_str
+
+def _findall(str, stack):
+    p2 = re.compile(r'[(](.*)[)]', re.S)
+    find_list = re.findall(p2, str)
+    if len(find_list) >=1:
+        parent = str.replace(find_list[0], "{0}")
+        stack.append(parent)
+        _findall(find_list[0], stack)
     else:
-        _handle(line)
+        print "find nothing."
+        stack.append(str)
 
-    ret = len(left) == len(right)
-    if debug:
-        print len(left), len(right), ret
-    return ret
+# -*- coding: utf8 -*-
+# 符号表
+_SYMBOLS = {'}': '{', ']': '[', ')': '(', '>': '<'}
+_SYMBOLS_L, _SYMBOLS_R = _SYMBOLS.values(), _SYMBOLS.keys()
+
+def check(s):
+    arr = []
+    count = 0
+    for c in s:
+        if c in _SYMBOLS_L:
+            # 左符号入栈
+            arr.append(c)
+        elif c in _SYMBOLS_R:
+            # 右符号要么出栈，要么匹配失败
+            if arr and arr[-1] == _SYMBOLS[c]:
+                arr.pop()
+                count = count + 1
+            else:
+                return False
+
+    return True, count

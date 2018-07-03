@@ -11,12 +11,11 @@ def handle(line, _debug = False):
     line = line.replace("\" + ", "\" .. ")
     line = line.replace(" + \" ", " .. \" ")
 
-    for key in handle_config.key_value:
-        line = utils.abs_replace(line, key, handle_config.key_value[key])
+    for key in handle_config.static_name:
+        line = utils.abs_replace(line, key, handle_config.static_name[key])
 
     # SOMETHING ERROR
 	line = utils.abs_replace(line, "CS.CS.", "CS.")
-	line = utils.abs_replace(line, "CS.\"\"", "\"\"")
-	
+	line = line.replace("CS.\"\"", "\"\"")
 
     return line

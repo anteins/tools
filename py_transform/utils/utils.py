@@ -186,12 +186,15 @@ def space_count(line, debug=False):
             break
     return _hc
 
-def offsetx(oldline, line):
+def align(oldline, line):
     offset_x = chr(common.S) * space_count(oldline)
     line = offset_x + line
     return line
 
 def abs_replace(line, origin, dest, debug=False):
-    neworigin = r"\b{0}\b".format(origin)
-    newline = re.sub(neworigin, dest, line)
+    try:
+        neworigin = r"\b{0}\b".format(origin)
+        newline = re.sub(neworigin, dest, line)
+    except Exception, e: 
+        newline = line.replace(neworigin, dest)
     return newline

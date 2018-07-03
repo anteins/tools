@@ -75,7 +75,7 @@ def get_one_block(lines, start_u, style=[""], debug=False):
         isok = False
         if debug:
             print "fck!!!!! no end line.", ret_len
-        if ret_len == 1 and bracket_utils.check_bracket(return_list[0]):
+        if ret_len == 1 and bracket_utils.check(return_list[0]):
             isok = True
     else:
         isok = True

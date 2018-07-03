@@ -15,9 +15,9 @@ def handle(line, _debug = False):
                 sname = largv[0]
                 slist = sname.split("_")
                 name = slist[1]
-                line = match_utils.handle_match(line, ["{0} obj_list({1})", lmatch[0], name])
+                line = match_utils.handle_match(line, ["{0} c_list({1})", lmatch[0], name])
 
-    # newexterndictionary({0}) --> obj_dictionary({0}, {1})
+    # newexterndictionary({0}) --> c_dictionary({0}, {1})
     if "newexterndictionary" in line:
         def bracket_cb(subline, debug=False):
             mixsub2 = subline
@@ -29,7 +29,7 @@ def handle(line, _debug = False):
                     slist = sname.split("_")
                     key = slist[1]
                     value = slist[2]
-                    mixsub2 = match_utils.handle_match(subline, ["obj_dictionary({0}, {1})", key, value])
+                    mixsub2 = match_utils.handle_match(subline, ["c_dictionary({0}, {1})", key, value])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "newexterndictionary", bracket_cb)
 
@@ -47,19 +47,25 @@ def handle(line, _debug = False):
         line = bracket_utils.handle_bracket(line, "newobject", bracket_cb)
 
     if "condexp" in line:
-        def bracket_cb(subline, debug=False):
-            mixsub2 = subline
-            lmatch = match_utils.get_match(subline, "condexp({0})", ["\w*.*"])
-            _origin = match_utils.origin()
-            if lmatch !=[]:
-                largv = utils.dump_argv(lmatch[0])
-                if len(largv)>=5:
-                    head, _1, mid, _2 = largv[0:4]
-                    reat = " ".join(largv[4:])
-                    ok, reat = match_utils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
-                    mixsub2 = match_utils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", head, mid, reat])
-            return mixsub2
-        line = bracket_utils.handle_bracket(line, "condexp", bracket_cb)
+        def bracket_cb(index, parent, subline):
+            if index == 1:
+                lmatch = subline.split(",")
+                if len(lmatch)>=5:
+                    head, _1, mid, _2, reat = lmatch[0:5]
+                    subline = "{0} and {1} or {2}".format(head, mid, reat)
+                    # print subline
+                    # largv = utils.dump_argv(lmatch[0])
+                    # if len(largv)>=5:
+                    #     head, _1, mid, _2 = largv[0:4]
+                    #     reat = " ".join(largv[4:])
+                    #     ok, reat = match_utils.play_match(reat, "(function() return {0} end)", "{0}", ["\w*.*"])
+                    #     mixsub2 = match_utils.handle_match_by_origin(subline, _origin, ["{0} and {1} or {2}", head, mid, reat])
+                    sc = utils.space_count(parent)
+                    new_parent = "return {0};\n"
+                    new_parent = utils.align(parent, new_parent)
+                    return new_parent, subline
+            return parent, subline
+        line = bracket_utils.handle_bracket2(line, bracket_cb)
 
     if "wrapyield" in line:
         lmatch = match_utils.get_match(line, "wrapyield({0})", ["\w*.*"])
@@ -83,7 +89,7 @@ def handle(line, _debug = False):
                 if len(_func2) > 0:
                     _add = "{0} = {0}.current".format(_func2[0])
                     _func = match_utils.handle_match_by_origin(_func, _ori, ["function({0}) {1}; {2}end", _func2[0], _add, _func2[1]])
-                    line = match_utils.handle_match_by_origin(line, _origin, ["{0}obj_foreach({1}, {2})", chr(common.S)*_offset, _list, _func])
+                    line = match_utils.handle_match_by_origin(line, _origin, ["{0}c_foreach({1}, {2})", chr(common.S)*_offset, _list, _func])
     
     if "typeas" in line:
         def bracket_cb(subline, debug=False):
@@ -107,7 +113,7 @@ def handle(line, _debug = False):
                     oper, _left, _right,  = largv[1:4]
                     oper = oper.replace("\"", "")
                     if oper == "/":
-                        mixsub2 = match_utils.handle_match(subline, ["obj_div({0}, {1}) ", _left, _right])
+                        mixsub2 = match_utils.handle_match(subline, ["c_div({0}, {1}) ", _left, _right])
                     else:
                         mixsub2 = match_utils.handle_match(subline, ["{0}{1}{2} ", _left, oper, _right])
             return mixsub2
@@ -136,9 +142,9 @@ def handle(line, _debug = False):
                     _obj, _nil, _type, _index = largv[0:4]
                     _type = _type.replace("\"", "").strip()
                     if _type == "get_Item" or _type == "get_Chars":
-                        mixsub2 = match_utils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
+                        mixsub2 = match_utils.handle_match(subline, ["c_get({0}, {1})", _obj, _index])
                     elif _type == "set_Item" or _type == "set_Chars":
-                        mixsub2 = match_utils.handle_match(subline, ["obj_setValue({0}, {1})", _obj, _index])
+                        mixsub2 = match_utils.handle_match(subline, ["c_set({0}, {1})", _obj, _index])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "getexterninstanceindexer", bracket_cb)
 
@@ -152,9 +158,9 @@ def handle(line, _debug = False):
                     _obj, _nil, _type, _index, val = largv[0:5]
                     _type = _type.replace("\"", "").strip()
                     if _type == "get_Item" or _type == "get_Chars":
-                        mixsub2 = match_utils.handle_match(subline, ["obj_getValue({0}, {1})", _obj, _index])
+                        mixsub2 = match_utils.handle_match(subline, ["c_get({0}, {1})", _obj, _index])
                     elif _type == "set_Item" or _type == "set_Chars":
-                        mixsub2 = match_utils.handle_match(subline, ["obj_setValue({0}, {1}, {2})", _obj, _index, val])
+                        mixsub2 = match_utils.handle_match(subline, ["c_set({0}, {1}, {2})", _obj, _index, val])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "setexterninstanceindexer", bracket_cb)
 
@@ -215,7 +221,7 @@ def handle(line, _debug = False):
                     if "op_Equality" in op:
                         _left, _right = reat[0:2]
                         if "nil" in _right:
-                            mixsub2 = match_utils.handle_match(subline, ["obj_isnil({0})", _left, _right])
+                            mixsub2 = match_utils.handle_match(subline, ["c_isnil({0})", _left, _right])
                         else:
                             mixsub2 = match_utils.handle_match(subline, ["{0} == {1}", _left, _right])
                     elif "op_Addition" in op or "op_UnaryPlus" in op:
@@ -252,7 +258,7 @@ def handle(line, _debug = False):
                             mixsub2 = match_utils.handle_match(subline, ["{0} >= {1}", _left, _right])
                     elif "op_Implicit" in op or "op_Inequality" in op:
                         _obj= reat[0]
-                        mixsub2 = match_utils.handle_match(subline, ["not obj_isnil({0})", _obj])
+                        mixsub2 = match_utils.handle_match(subline, ["not c_isnil({0})", _obj])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "invokeexternoperator", bracket_cb)
 
@@ -270,13 +276,13 @@ def handle(line, _debug = False):
                         field = field.replace("\"", "")
                         result = this+"."+field
                     if "true" in is_equal:
-                        mixsub2 = match_utils.handle_match(subline, ["obj_isnil({0})", result])
+                        mixsub2 = match_utils.handle_match(subline, ["c_isnil({0})", result])
                     else:
-                        mixsub2 = match_utils.handle_match(subline, ["not obj_isnil({0})", result])
+                        mixsub2 = match_utils.handle_match(subline, ["not c_isnil({0})", result])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "externdelegationcomparewithnil", bracket_cb)
 
-    # delegationcomparewithnil ---> obj_isnil
+    # delegationcomparewithnil ---> c_isnil
     if "delegationcomparewithnil" in line:
         def bracket_cb(subline, debug=False):
             mixsub2 = subline
@@ -291,9 +297,9 @@ def handle(line, _debug = False):
                         field = field.replace("\"", "")
                         result = this+"."+field
                     if "true" in isequal:
-                        mixsub2 = match_utils.handle_match(subline, ["obj_isnil({0})", result])
+                        mixsub2 = match_utils.handle_match(subline, ["c_isnil({0})", result])
                     else:
-                        mixsub2 = match_utils.handle_match(subline, ["not obj_isnil({0})", result])
+                        mixsub2 = match_utils.handle_match(subline, ["not c_isnil({0})", result])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "delegationcomparewithnil", bracket_cb)
 
@@ -316,8 +322,6 @@ def handle(line, _debug = False):
                 largv = utils.dump_argv(lmatch[0])
                 if len(largv)>1:
                     enum = "{0}.{1}".format(largv[0], largv[1].replace("\"", ""))
-                    print largv, enum
-                    print subline
                     mixsub2 = match_utils.handle_match(subline, ["{0}", enum])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "wrapconst", bracket_cb)
@@ -354,7 +358,7 @@ def handle(line, _debug = False):
                 largv = utils.dump_argv(lmatch[0])
                 if len(largv)>=1:
                     a, b = largv[0:2]
-                    mixsub2 = match_utils.handle_match(subline, ["obj_randomRange({0}, {1})", a, b])
+                    mixsub2 = match_utils.handle_match(subline, ["c_randomRange({0}, {1})", a, b])
             return mixsub2
         line = bracket_utils.handle_bracket(line, "UnityEngine.Random.Range", bracket_cb)
 
@@ -396,10 +400,10 @@ def handle(line, _debug = False):
             reps = "typeof(" + reps + ")"
             line = line.replace(lmatch[0], reps)
 
-    # match  = match_utils.get_match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"])
-    # if match != []:
-    #     if len(match)>=2 and match[0] != "" and match[1] != "":
-    #         ok, line  = match_utils.play_match(line, "{0}[{1}]", "obj_getValue({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
+    match  = match_utils.get_match(line, "{0}[{1}]", ["[a-zA-Z0-9_\.]*", "[a-zA-Z0-9#_\. \-\+:\"]*"])
+    if match != []:
+        if len(match)>=2 and match[0] != "" and match[1] != "":
+            ok, line  = match_utils.play_match(line, "{0}[{1}]", "c_get({0}, {1})", ["[a-zA-Z0-9_\.\"]*", "[a-zA-Z0-9#_\. \-\+:\"]*"], _debug)
 
     # match  = match_utils.get_match(line, "if ({0} == {1}) then", ["[A-Za-z0-9_\.\[\]]*", "[0-9]*"])
     # if len(match)>1:
@@ -419,52 +423,11 @@ def handle(line, _debug = False):
             fdes = fdes.strip().strip("(").strip(")")
             line = line.replace(origin, fdes)
 
-    if "__" in line and not line.startswith("function "):
-        if "GetDataByCls__" in line:
-            line = line.replace("GetDataByCls__System_Int64", "GetDataByCls")
-            line = line.replace("GetDataByCls__System_Int32", "GetDataByCls")
-
-        elif "Get__System" in line:
-            line = line.replace("LogicStatic.Get__System_Predicate_T", "LogicStatic.Get")
-            line = line.replace("LogicStatic.Get__System_Int32", "LogicStatic.Get")
-            line = line.replace("LogicStatic.Get__System_Int64", "LogicStatic.Get")
-
-        elif "__EventDelegate_Callback" in line:
-            line = line.replace("Set__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Set")
-            line = line.replace("Add__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Add")
-            line = line.replace("Remove__System_Collections_Generic_List_EventDelegate__EventDelegate_Callback", "Remove")
-
-        elif "SetData__System_Object" in line:
-            line = line.replace("SetData__System_Object", "SetData")
-
-        elif "AddChild__UnityEngine_GameObject__UnityEngine_GameObject" in line:
-            line = line.replace("AddChild__UnityEngine_GameObject__UnityEngine_GameObject", "AddChild")
-        elif "__EightGame" in line or "__System" in line:
-            head = line.split("__")[0]
-            tail = line.split("__")[-1]
-            lmatch  = match_utils.get_match(tail, "{0}{1}", ["[A-Za-z0-9_]*", "\w*.*"])
-            if lmatch != []:
-                ohead = line.replace(lmatch[-1], "")
-        else:
-            line = line.replace("GetInt__CS_System_String__CS_System_Boolean", "GetInt")
-
-            
-        # regx = "[A-Za-z0-9\. \"\[\]\(\)]*"
-        # lmatch  = match_utils.get_match(line, "{0}__{1}({2}", [regx, regx, "\w*.*"])
-        # origin = match_utils.origin()
-        # if len(lmatch) > 2:
-        #     head = lmatch[0].split(".")
-        #     argv = lmatch[2].strip().strip("(").strip(")")
-        #     largv = utils.dump_argv(argv)
-        #     if largv[0]==head[0]:
-        #         del(largv[0])
-        #     if largv[-1] == ";":
-        #         del(largv[-1])
-
-        #     if len(head)>1:
-        #         rep = "{0}.{1}({2}".format(head[0], head[1], ",".join(largv))
-        #     else:
-        #         rep = "{0}({1}".format(head[0], ",".join(largv))
-        #     line = line.replace(origin, rep)
-
+    if "__" in line:
+        tmp = line.split("__")
+        if len(tmp) >= 2:
+            old_head = tmp[0]
+            old_tail = tmp[-1]
+            old_tails = old_tail.split("(")
+            line = old_head + "(" + "(".join(old_tails[1:])
     return line
