@@ -436,6 +436,20 @@ def handle(line, _debug = False):
             fdes = fdes.strip().strip("(").strip(")")
             line = line.replace(origin, fdes)
 
+    if "__compiler_invoke" in line:
+        lmatch  = match_utils.get_match(line, "(function() local __compiler_invoke{0}()", ["\w*.*"])
+        origin = match_utils.origin()
+        if len(lmatch)>0:
+            fdes = lmatch[0].split(";")
+            if len(fdes)>1:
+                fdes = fdes[0].split("=")
+                if len(fdes)>1:
+                    fdes = fdes[1] + " end"
+            if isinstance(fdes, list):
+                fdes = fdes[0]
+            fdes = fdes.strip().strip("(").strip(")")
+            line = line.replace(origin, fdes)
+
     if "__" in line:
         tmp = line.split("__")
         if len(tmp) >= 2:

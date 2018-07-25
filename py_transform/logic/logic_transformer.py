@@ -25,24 +25,6 @@ def handle (out_block, model="" ):
         line = logic_method.handle(line, _debug)
         line = logic_style.handle(line, _debug)
         line = logic_field.handle(line, _debug)
-
-        # ltmp = [
-        #     "(1)",
-        #     "(2)",
-        #     "(3)",
-        #     "(4)",
-        #     "(5)",
-        #     "(6)",
-        #     "(7)",
-        #     "(8)",
-        #     "(9)",
-        # ]
-        # for ii in ltmp:
-        #     if ii in line:
-        #         lmatch  = match_utils.get_match(line, "{0}({1})", ["[a-zA-Z0-9_\.]*", "[0-9]*"])
-        #         if lmatch != []:
-        #             line = match_utils.handle_match(line, ["{0}()", lmatch[0]])
-        #         break
         
         if model == "diff":
             newblock.append("--" + cs_line)

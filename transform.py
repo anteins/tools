@@ -29,23 +29,20 @@ GameProjectToolsFolder = GameProjectFolder + "/Tools/"
 def cs2lua_execute(parent, target):
 	global Cs2luaFolder, Cs2luaScriptFolder
 	if os.path.isfile(target):
-		# dll = "E:/Project/android3_platfrom/client/Assets/Plugins/Network/Lib/protobufData.dll"
-		dll = "E:/Project/android3_platfrom/client/Library/ScriptAssemblies/Assembly-CSharp.dll"
-
-		utils.do_cmd("{0}Cs2Lua.exe -ext lua -outputresult -refbypath {1} -xlua {2}".format(Cs2luaFolder, dll, target))
+		print "cs2lua_execute is file......"
+		utils.do_cmd("{0}Cs2Lua.exe -ext lua -xlua -src {1}".format(Cs2luaFolder, target), True)
 		_source = parent + "/lua"
-		_source = _source.replace("/", "\\")
-		_Cs2luaScriptFolder = Cs2luaScriptFolder.replace("/", "\\")
-		utils.do_cmd("echo A|xcopy /E {0} {1}".format(_source, _Cs2luaScriptFolder))
+		utils.copy_path_win(parent + "/lua", Cs2luaScriptFolder)
 		shutil.rmtree(parent + "/lua/", True)
 		shutil.rmtree(parent + "/log/", True)
 	else:
-		for parent, dirnames, filenames in os.walk(Cs2luaTarget):
+		print "cs2lua_execute is path......"
+		for parent, dirnames, filenames in os.walk(target):
 			for filename in filenames:
 				if ".cs" in filename and not ".meta" in filename:
 					fullname = os.path.join(parent, filename)
-					utils.do_cmd("{0}Cs2Lua.exe -ext lua -xlua {1}".format(Cs2luaFolder, fullname))
-					utils.do_cmd("echo A|xcopy /E {0} {1}".format(parent + "/lua", Cs2luaScriptFolder))
+					utils.do_cmd("{0}Cs2Lua.exe -ext lua -xlua -src {1}".format(Cs2luaFolder, fullname), True)
+					utils.copy_path_win(parent + "/lua", Cs2luaScriptFolder)
 					shutil.rmtree(parent + "/lua/", True)
 					shutil.rmtree(parent + "/log/", True)
 
@@ -53,6 +50,10 @@ def cs2lua_execute(parent, target):
 def cs2lua_handle():
 	global Cs2luaFolder, GameProjectTempFolder, GameProjectFolder
 	global Cs2luaScriptFolder
+
+	if os.path.exists(Cs2luaScriptFolder):
+		shutil.rmtree(Cs2luaScriptFolder, True)
+
 	if not os.path.exists(GameProjectTempFolder):
 		os.mkdir(GameProjectTempFolder)
 
@@ -62,8 +63,24 @@ def cs2lua_handle():
 	if not os.path.exists(GameProjectTempFolder + "bin/Debug/"):
 		os.mkdir(GameProjectTempFolder + "bin/Debug/")
 
-	utils.copyfile("{0}/Library/ScriptAssemblies/Assembly-CSharp-firstpass.dll".format(GameProjectFolder), "{0}/bin/Debug/Assembly-CSharp-firstpass.dll".format(GameProjectTempFolder))
+	# utils.copyfile("{0}/Library/ScriptAssemblies/Assembly-CSharp-firstpass.dll".format(GameProjectFolder), "{0}/bin/Debug/Assembly-CSharp-firstpass.dll".format(GameProjectTempFolder))
+	# 拷贝游戏工程dll
+	lists = {
+		"Assembly-CSharp.dll",
+		"Assembly-CSharp-Editor.dll",
+		"Assembly-CSharp-firstpass.dll",
+		"Assembly-UnityScript-Editor.dll",
+	}
+
+	for i in lists:
+		utils.copy_file_win(GameProjectFolder + "/Library/ScriptAssemblies/" + i, GameProjectTempFolder + "/bin/Debug/" + i)
+
+	# 运行cs2lua.exe, 指定csproj文件
 	cs2lua_execute(GameProjectFolder, Cs2luaTargetFile)
+	# 运行cs2lua.exe, 指定逻辑代码目录(不要用，生成的代码不完整)
+	# cs2lua_execute(GameProjectFolder, GameProjectFolder + "/Assets/Script/UnityComponent/Module/MainWorldUIModule/PartyWindowModule/Part/CommonParty")
+
+	# 删除cs2lua框架的相关lua脚本,不需要用到
 	utils.remove_files(Cs2luaScriptFolder, "cs2lua_*", True)
 
 # 转译xlua格式脚本
@@ -90,7 +107,7 @@ def xlua_handle(args):
 	xrer.set_filter(
 		# target files
 		target_files,
-		# target file ext
+		# target file_ext
 		[".lua"], 
 		# ignore file
 		["manifest.lua", "tmp.lua", "Init.lua"],
@@ -100,9 +117,18 @@ def xlua_handle(args):
 	# 开始转译
 	xrer.start(autolua.AutoLuaHandler())
 	# 拷贝lua基础库
-	_LuaScriptFolder = "{0}/core/*".format(LuaScriptFolder).replace("/", "\\")
-	_UnsignedFolder = "{0}/core/".format(UnsignedFolder).replace("/", "\\")
-	utils.do_cmd("echo A|xcopy /E {0} {1}".format(_LuaScriptFolder, _UnsignedFolder))
+	lists = {
+		"3rd/*",
+		"core/*",
+		"Hotfix.lua",
+		"Init.lua",
+	}
+
+	for i in lists:
+		if os.path.isfile("{0}{1}".format(LuaScriptFolder, i)):
+			utils.copy_file_win("{0}{1}".format(LuaScriptFolder, i), "{0}{1}".format(UnsignedFolder, i))
+		else:
+			utils.copy_path_win("{0}{1}".format(LuaScriptFolder, i), "{0}{1}".format(UnsignedFolder, i))
 
 def Start():
 	while(True):
@@ -118,8 +144,6 @@ def Start():
 		if len(input_list) > 0:
 			input_val = input_list[0]
 			input_args = input_list[1:]
-			print "input_val " , input_val
-			print "input_args " , input_args
 
 			if input_val == "-cs2lua":
 				cs2lua_handle()

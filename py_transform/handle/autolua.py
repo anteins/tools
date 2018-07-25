@@ -28,32 +28,32 @@ class AutoLuaHandler(object):
         return argv
 
     def transform_blocks_style(self, outblock, model = ""):
-        # merge_out = []
-        # def _handler1(match, block, block_ln, mergeList):
-        #     newblock = []
-        #     for item in block_ln:
-        #         linenum, index, line = item[0:3]
-        #         oldline = line
-        #         _space = utils.space_count(line)
-        #         offsetX = chr(common.S)*(_space)
-        #         offsetX_1 = chr(common.S)*(_space + 1)
-        #         if index == 0:
-        #             lmatch = match_utils.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
-        #             line = offsetX + "c_foreach({0}, function (item)".format(lmatch[1])
-        #             for argv in lmatch[0].split(','):
-        #                 if argv != "_":
-        #                     line = line + "\n{0}local {1} = item.current\n".format(offsetX_1, argv)
-        #         elif index == len(block)-1:
-        #             line = offsetX + "end)\n"
-        #         else:
-        #             if line.strip() == "break" or line.strip() == "break;":
-        #                 line = offsetX + "return \"break\";\n"
+        merge_out = []
+        def _handler1(match, block, block_ln, mergeList):
+            newblock = []
+            for item in block_ln:
+                linenum, index, line = item[0:3]
+                oldline = line
+                _space = utils.space_count(line)
+                offsetX = chr(common.S)*(_space)
+                offsetX_1 = chr(common.S)*(_space + 1)
+                if index == 0:
+                    lmatch = match_utils.get_match(line, "for {0} in getiterator({1}) do", ["\w.*", "\w.*"])
+                    line = offsetX + "c_foreach({0}, function (item)".format(lmatch[1])
+                    for argv in lmatch[0].split(','):
+                        if argv != "_":
+                            line = line + "\n{0}local {1} = item.current\n".format(offsetX_1, argv)
+                elif index == len(block)-1:
+                    line = offsetX + "end)\n"
+                else:
+                    if line.strip() == "break" or line.strip() == "break;":
+                        line = offsetX + "return \"break\";\n"
 
-        #         if oldline != line:
-        #             merge_out.append([linenum, oldline, line])
+                if oldline != line:
+                    merge_out.append([linenum, oldline, line])
    
-        # lists = block_utils.get_mult_block(outblock, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], _handler1)
-        # outblock = self.merge_ex(outblock, merge_out)
+        lists = block_utils.get_mult_block(outblock, ["for {0} in getiterator({1}) do", "\w.*", "\w.*"], _handler1)
+        outblock = self.merge_ex(outblock, merge_out)
 
         merge_out2 = []
         def _handler2(match, block, block_ln, mergeList):
@@ -62,7 +62,6 @@ class AutoLuaHandler(object):
                 largv = utils.dump_argv(match[0])
                 if len(largv)>=7:
                     obj, nil, mfunc, delegate = largv[3:7]
-
                     mfunc = mfunc.replace('"', '')
                     delegate_l = delegate.split(";")
                     if len(delegate_l)>1:
@@ -162,12 +161,13 @@ class AutoLuaHandler(object):
         match, block = block_utils.get_one_block(message.model["lines"], ["require {0}", "\w*.*"])
         lblock.append("\n")
 
-        lInput = [
+        lists = [
             "local PlatformUtil = require('core.utils.PlatformUtil')\n",
             "local LuaUtil = require('core.utils.LuaUtil')\n\n",
             "local this = nil\n",
             "local cs_clazz = {0}\n".format(message.model["cs_mod_name"]),
-            "local {0} = class('{1}')\n\n".format(message.model["lua_mod_name"], message.model["lua_file_name"]),
+            # "local {0} = class('{1}')\n\n".format(message.model["lua_mod_name"], message.model["lua_file_name"]),
+            "local {0} = {{}}\n\n".format(message.model["lua_mod_name"]),
             "function {0}:Ref(ref)\n".format(message.model["lua_mod_name"]),
             "   if ref then\n",
             "       this = ref\n",
@@ -175,7 +175,7 @@ class AutoLuaHandler(object):
             "   return this\n",
             "end\n\n",
         ]
-        lblock.append(lInput)
+        lblock.append(lists)
         return lblock
 
     def dump_method_block(self, outblock):
@@ -271,9 +271,9 @@ class AutoLuaHandler(object):
     def dump_hotfix_block(self, block):
         hotfix_block = []
         hotfix_block.append("function {0}:hotfix()\n".format(message.model["lua_mod_name"]))
-        hotfix_block.append("xlua.private_accessible({0})\n".format(message.model["lua_mod_name"]))
+        # hotfix_block.append("xlua.private_accessible({0})\n".format(message.model["lua_mod_name"]))
         if len(message.model["hotfixs"]) > 0:
-            headstr = "{0}xlua.hotfix({1}, {{\n".format(chr(common.S), message.model["lua_file_name"])
+            headstr = "{0}xlua.hotfix({1}, {{\n".format(chr(common.S), "cs_clazz")
             hotfix_block.append(headstr),
             for func in message.model["hotfixs"]:
                 sFName = func[0]

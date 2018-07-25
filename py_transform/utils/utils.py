@@ -54,6 +54,16 @@ def remove_files(rootdir, ext, show = False):
             print i
         os.remove(i)
 
+def copy_file_win(fromfile, tofile):
+    _fromfile = fromfile.replace("/", "\\")
+    _tofile = tofile.replace("/", "\\")
+    do_cmd("echo F|xcopy {0} {1}".format(_fromfile, _tofile))
+
+def copy_path_win(frompath, topath):
+    _frompath = frompath.replace("/", "\\")
+    _topath = topath.replace("/", "\\")
+    do_cmd("echo A|xcopy /E {0} {1}".format(_frompath, _topath))
+
 def do_cmd(cmd, islog=False):
         # cmd = cmd.replace("/", "\\")
         if islog:
