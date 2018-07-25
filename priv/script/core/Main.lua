@@ -1,16 +1,19 @@
 
 local PlatformUtil = require("core.utils.PlatformUtil")
 local LuaUtil = require("core.utils.LuaUtil")
-Main = class("Main", nil)
+local Hotfix = require("Hotfix")
+Main = {}
 
 function Main:HotfixMain()
-	GameLog("========================= Main:HotfixMain =========================")
+	print("========================= Main:HotfixMain =========================")
 	if PlatformUtil:IsIOS() then
+        print("========================= iOS平台 =========================")
         Toast("iOS平台")
         -- self:InitGlobal()
         -- self:TestHotfix()
         -- self:ReleaseHotfix()
     else
+        print("========================= Normal平台 =========================")
     	self:InitGlobal()
         self:TestHotfix()
         self:ReleaseHotfix()
@@ -18,17 +21,23 @@ function Main:HotfixMain()
 end
 
 function Main:TestHotfix()
-	local hotfix_model = require("hotfix.EightGame__Logic__SettingWindowEnterController")
-    local exploreviewnode = require("hotfix.eightgame__logic__exploreviewnode")
-	if exploreviewnode then
-		exploreviewnode:hotfix()
+	for i, modname in pairs(Hotfix:GetList()) do
+		if modname then
+            local mod = require("hotfix." .. modname)
+            if mod then
+                try(function ()
+                    mod:hotfix()
+                    print("==================>hotfix setup: " .. modname)
+                end, function (exception)
+                    print("================== hotfix error! ==================")
+                    print(modname)
+                    print(exception)
+                    print("================== hotfix error! ==================")
+                    return
+                end)
+            end
+		end
 	end
-	-- for i,v in pairs(g_tbHotfix) do
-	-- 	if v then
-	-- 		GameLog("====>hotfix: ", obj_tostring(v.Name))
-	-- 		v:hotfix()
-	-- 	end
-	-- end
 end
 
 function Main:ReleaseHotfix()
